@@ -144,7 +144,10 @@ class OrGate extends Component {
 
     var sig = 0;
     for( var i = 0 ; i < this.inputs.length ; i++ ) {
-      if( this.inputs[i].peek( tick - 1 ) > 0 ) sig = 1;
+      if( this.inputs[i].peek( tick - 1 ) > 0 ) { 
+        sig = 1;
+        break;
+      }
     }
 
     this.determine_signal( tick, sig );
@@ -164,7 +167,11 @@ class AndGate extends Component {
 
     var sig = this.inputs.length > 0 ? 1 : 0;
     for( var i = 0 ; i < this.inputs.length ; i++ ) {
-      if( this.inputs[i].peek( tick - 1 ) < 1 ) sig = 0;
+      if( this.inputs[i].peek( tick - 1 ) < 1 ) { 
+        sig = 0;
+        break;
+      }
+
     }
 
     this.determine_signal( tick, sig );

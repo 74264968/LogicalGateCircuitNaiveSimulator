@@ -6,18 +6,25 @@
   <script language="javascript" src="./visualization/time-sequence.js"></script>
   <script language="javascript">
   function SmokingTest( ) {
-    var c = new Clock( 1, 50 );
-    var connector = new Connector( null, 3 );
-    var g_Or1 = new OrGate( );
-    var g_Or2 = new OrGate( );
-    var g_Not = new NotGate( );
-    var g_And = new AndGate( );
-    connector.connector_to( c );
-    g_Or1.inputs.push( c );
-    g_Or2.inputs.push( connector );
-    g_And.inputs.push( c );
-    g_And.inputs.push( g_Or2 );
-    g_Not.inputs.push( g_And );
+    var clk = new Clock( 1, 50 );
+    var d1 = new Connector( null, 1, "delay_1" );
+    var d2 = new Connector( null, 2, "delay_2" );
+    var d3 = new Connector( null, 3, "delay_3" );
+    d1.connector_to( clk );
+    d2.connector_to( clk );
+    d3.connector_to( clk );
+    var g_Or_d1_d2_d3 = new OrGate("or_d1_d2_d3" );
+    g_Or_d1_d2_d3.inputs.push( d1 );
+    g_Or_d1_d2_d3.inputs.push( d2 );
+    g_Or_d1_d2_d3.inputs.push( d3 );
+    var g_Not = new NotGate( "not_d1" );
+    g_Not.inputs.push( d1 );
+    var g_And_clk_d3 = new AndGate( "and_clk_d3" );
+    g_And_clk_d3.inputs.push( clk );
+    g_And_clk_d3.inputs.push( d3 );
+    
+    var sigs = [clk, d1, d2, d3, g_Or_d1_d2_d3, g_Not, g_And_clk_d3];
+
 
     class ConsoleMonitor { 
       constructor() {}
@@ -26,8 +33,8 @@
       }
     }
 
-    var simulator = new Simulator( [c, connector, g_Or1, g_Or2, g_Not, g_And], 0 );
-    var tm = new TimeSequenceMonitor( "timeseq", 1024, [c, connector, g_Or2, g_And, g_Not] );
+    var simulator = new Simulator( sigs, 0 );
+    var tm = new TimeSequenceMonitor( "timeseq", 768, sigs );
     tm.init();
     var loop = new MainLoop( simulator, 10, 1000 );
     loop.register_monitor( new ConsoleMonitor() );

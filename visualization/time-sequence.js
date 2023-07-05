@@ -16,8 +16,8 @@ class TimeSequenceMonitor {
     this.inited = true;
     this.canvas = document.getElementById( this.canvas_id );
     //TODO: change width and height settings
-    this.canvas.width = 1024;
-    this.canvas.height = 1024;
+    this.canvas.width = this.width;
+    this.canvas.height = 256;
   }
 
   add_signal( signal ) {
@@ -30,10 +30,10 @@ class TimeSequenceMonitor {
     const LABEL_PADDING = 12;
     const LABEL_WIDTH_IN_PX = 256;
     const LINE_HEIGHT = 18;
-    const TICK_WIDTH = 13;
+    const TICK_WIDTH = 7;
     const FONT_SIZE = 12;
     const FONT = FONT_SIZE + "px serif";
-    var SIGNAL_HEIGHT = LINE_HEIGHT - 8;
+    const SIGNAL_HEIGHT = LINE_HEIGHT - 8;
 
     ctx.font = FONT;
     ctx.textBaseline = "top";
@@ -51,7 +51,7 @@ class TimeSequenceMonitor {
     }
 
     //2. draw x-axis and grids
-    var range = parseInt((( this.canvas.width - LABEL_WIDTH_IN_PX ) / TICK_WIDTH + 9 ) / 10 ) * 10;
+    var range = parseInt((( this.canvas.width - LABEL_WIDTH_IN_PX ) / TICK_WIDTH + 1 ) / 10 ) * 10;
     var tick_start = Math.max( 0, tick - range );
     var tick_end = tick_start + range;
     var step = 10;
@@ -107,7 +107,7 @@ class TimeSequenceMonitor {
       ctx.beginPath();
       var os = this.signals[i].peek( tick_start - 1 );
         ctx.moveTo( xx - TICK_WIDTH / 2, yy + (1-os)*SIGNAL_HEIGHT + (LINE_HEIGHT - SIGNAL_HEIGHT)/2 );
-      for( var t = tick_start; t <= tick && t < tick_end ; t++ ) {
+      for( var t = tick_start; t <= tick && t <= tick_end ; t++ ) {
         var s = this.signals[i].peek(t);
 
         //ctx.fillText( s, xx + (t-tick_start)*TICK_WIDTH , yy );
