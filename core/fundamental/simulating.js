@@ -6,7 +6,7 @@ class Simulator {
   }
 
   update( next_tick ) {
-    while( this.current_tick < next_tick ) {
+    while( this.current_tick <= next_tick ) {
       for( var i = 0 ; i < this.network.length ; i++ ) {
         this.network[i].peek( this.current_tick );
       }

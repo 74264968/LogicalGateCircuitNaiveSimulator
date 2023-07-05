@@ -26,12 +26,14 @@ class Component {
   }
 
   get_determined_signal( tick ) {
-    var which = this.signal_determined.length - 1;
-    while( which >= 0 ) {
+    //TODO: binary search
+    var which = 0;
+    while( which < this.signal_determined.length ) {
       if( this.signal_determined[which][0] >= tick ) return this.signal_determined[which][1];
-      which--;
+      which++;
     }
     return -1;
+    
   }
 
   determine_signal( tick, sig ) {
@@ -114,7 +116,7 @@ class NotGate extends Component {
   }
 
   peek( tick ) {
-    if( tick <= 0 ) return 0;
+    if( tick < 0 ) return 1;
     var sig = this.get_determined_signal( tick );
     if( sig >= 0 ) return sig;
 
@@ -136,7 +138,7 @@ class OrGate extends Component {
   }
 
   peek( tick ) {
-    if( tick <= 0 ) return 0;
+    if( tick < 0 ) return 0;
     var sig = this.get_determined_signal( tick );
     if( sig >= 0 ) return sig;
 
@@ -156,7 +158,7 @@ class AndGate extends Component {
   }
 
   peek( tick ) {
-    if( tick <= 0 ) return 0;
+    if( tick < 0 ) return 0;
     var sig = this.get_determined_signal( tick );
     if( sig >= 0 ) return sig;
 

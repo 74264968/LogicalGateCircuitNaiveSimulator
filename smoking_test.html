@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script language="javascript" src="./core/fundamental/gates.js"></script>
+  <script language="javascript" src="./core/fundamental/simulating.js"></script>
+  <script language="javascript" src="./visualization/time-sequence.js"></script>
+  <script language="javascript">
+  function SmokingTest( ) {
+    var c = new Clock( 1, 50 );
+    var connector = new Connector( null, 3 );
+    var g_Or1 = new OrGate( );
+    var g_Or2 = new OrGate( );
+    var g_Not = new NotGate( );
+    var g_And = new AndGate( );
+    connector.connector_to( c );
+    g_Or1.inputs.push( c );
+    g_Or2.inputs.push( connector );
+    g_And.inputs.push( c );
+    g_And.inputs.push( g_Or2 );
+    g_Not.inputs.push( g_And );
+
+    class ConsoleMonitor { 
+      constructor() {}
+      update( tick ) {
+        //console.log( tick, g_Or1.peek( tick ) );
+      }
+    }
+
+    var simulator = new Simulator( [c, connector, g_Or1, g_Or2, g_Not, g_And], 0 );
+    var tm = new TimeSequenceMonitor( "timeseq", 1024, [c, connector, g_Or2, g_And, g_Not] );
+    tm.init();
+    var loop = new MainLoop( simulator, 10, 1000 );
+    loop.register_monitor( new ConsoleMonitor() );
+    loop.register_monitor( tm );
+    function update( )
+    {
+      loop.update();
+    }
+    setInterval( update, loop.frame_in_ms );
+    loop.start();
+
+    var btnResume = document.getElementById("btnResume");
+    btnResume.onclick = function() { loop.resume(); }
+
+    var btnStop = document.getElementById("btnStop");
+    btnStop.onclick = function() { loop.pause(); }
+  }
+  </script>
+</head>
+<body onload="javascript:SmokingTest()">
+  <div>
+  <button id="btnResume">resume</button>
+  <button id="btnStop">stop</button>
+  </div>
+  <div>
+  <canvas id="timeseq"></canvas>
+  </div>
+</body>
+</html>
