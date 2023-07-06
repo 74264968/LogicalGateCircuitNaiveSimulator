@@ -26,13 +26,31 @@ class Component {
   }
 
   get_determined_signal( tick ) {
-    //TODO: binary search
-    var which = 0;
-    while( which < this.signal_determined.length ) {
-      if( this.signal_determined[which][0] >= tick ) return this.signal_determined[which][1];
-      which++;
+    var l = 0;
+    var r = this.signal_determined.length - 1;
+    var ans = -1;
+    while( r - l > 1 ) {
+      var m = (r + l) >> 1;
+      if( this.signal_determined[m][0] >= tick ) r = m;
+      else if( this.signal_determined[m][0] <= tick ) l = m;
     }
+    if( this.signal_determined.length > 0 && l >= 0 && this.signal_determined[l][0] >= tick ) ans = l;
+    else if( r >= 0 && this.signal_determined[r][0] >= tick ) ans = r;
+    if( ans != -1 ) return this.signal_determined[ans][1];
     return -1;
+   // var which = 0;
+   // while( which < this.signal_determined.length ) {
+   //   if( this.signal_determined[which][0] >= tick ) 
+   //   {
+   //     if( which != ans ) {
+   //       console.log( 'bad ans', ans, which, this.signal_determined );
+   //     }
+   //     return this.signal_determined[which][1];
+   //   }
+   //   which++;
+   // }
+   // if( ans != -1 ) console.log( 'bad ans 2', ans, -1, this.signal_determined );
+   // return -1;
     
   }
 
@@ -53,9 +71,24 @@ class Signal extends Component
   constructor( value, name ) {
     super( S_SIMPLE, [], "SIGNAL", name );
     this.value = value;
+    this.attached = null;
+  }
+
+  set_value( n_value ) {
+    this.value = n_value;
+  }
+
+  set_attached( what ) {
+    if( this.attached ) { 
+      throw this.name + " is already being attached!";
+    }
+    this.attached = what;
   }
 
   peek( tick ) {
+    var res = this.get_determined_signal( tick );
+    if( res >= 0 ) return res;
+    this.determine_signal( tick, this.value );
     return this.value;
   }
 }

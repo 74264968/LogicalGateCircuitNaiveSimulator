@@ -1,9 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <style>
+    button {border:1px solid #338; padding:4px;}
+    button:hover {border:1px solid #996;cursor:pointer}
+    .active {background-color: #33aa44; color:#eef}
+    .inactive {background-color: none;}
+  </style>
   <script language="javascript" src="./core/fundamental/gates.js"></script>
   <script language="javascript" src="./core/fundamental/simulating.js"></script>
   <script language="javascript" src="./visualization/time-sequence.js"></script>
+  <script language="javascript" src="./visualization/input-interfaces.js"></script>
   <script language="javascript">
   function SmokingTest( ) {
     var clk = new Clock( 1, 50 );
@@ -33,6 +40,20 @@
       }
     }
 
+    for( var i = 0 ; i < 4 ; i++ ) {
+      var s = new Signal( 1, "s"+i );
+      var is = new InputSwitch( s, "signalPanel", "active", "inactive", 0 );
+      sigs.push( s );
+    }
+    var word = []
+    for( var i = 0 ; i < 16 ; i++ ) {
+      var bit = new Signal( 0, "word["+i+"]" );
+      word.push(bit);
+    }
+    sigs = sigs.concat( word );
+
+    var idigit = new InputDigits( word, "digitPanel", "word" );
+
     var simulator = new Simulator( sigs, 0 );
     var tm = new TimeSequenceMonitor( "timeseq", 768, sigs );
     tm.init();
@@ -51,6 +72,7 @@
 
     var btnStop = document.getElementById("btnStop");
     btnStop.onclick = function() { loop.pause(); }
+
   }
   </script>
 </head>
@@ -59,6 +81,8 @@
   <button id="btnResume">resume</button>
   <button id="btnStop">stop</button>
   </div>
+  <div id="signalPanel" style="padding: 20px"></div>
+  <div id="digitPanel" style="padding: 20px"></div>
   <div>
   <canvas id="timeseq"></canvas>
   </div>

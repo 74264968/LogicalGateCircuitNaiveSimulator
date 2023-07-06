@@ -17,7 +17,7 @@ class TimeSequenceMonitor {
     this.canvas = document.getElementById( this.canvas_id );
     //TODO: change width and height settings
     this.canvas.width = this.width;
-    this.canvas.height = 256;
+    //this.canvas.height = 256;
   }
 
   add_signal( signal ) {
@@ -27,6 +27,7 @@ class TimeSequenceMonitor {
   update( tick ) {
     var ctx = this.canvas.getContext("2d");
 
+
     const LABEL_PADDING = 12;
     const LABEL_WIDTH_IN_PX = 256;
     const LINE_HEIGHT = 18;
@@ -34,6 +35,8 @@ class TimeSequenceMonitor {
     const FONT_SIZE = 12;
     const FONT = FONT_SIZE + "px serif";
     const SIGNAL_HEIGHT = LINE_HEIGHT - 8;
+
+    this.canvas.height = LINE_HEIGHT * (this.signals.length + 2);
 
     ctx.font = FONT;
     ctx.textBaseline = "top";
