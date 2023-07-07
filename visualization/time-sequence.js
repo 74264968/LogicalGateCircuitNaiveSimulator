@@ -2,18 +2,13 @@
   2023-07-04
 */
 class TimeSequenceMonitor {
-  constructor( canvas_id, width, signals ) {
+  constructor( signals, canvas_id, width ) {
     this.canvas_id = canvas_id;
     this.width = width;
     if( signals ) this.signals = signals;
     else this.signals = [];
 
     this.tick_offset = 0;
-  }
-
-  init( ) {
-    if( this.inited ) return;
-    this.inited = true;
     this.canvas = document.getElementById( this.canvas_id );
     //TODO: change width and height settings
     this.canvas.width = this.width;

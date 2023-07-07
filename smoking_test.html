@@ -11,6 +11,8 @@
   <script language="javascript" src="./core/fundamental/simulating.js"></script>
   <script language="javascript" src="./visualization/time-sequence.js"></script>
   <script language="javascript" src="./visualization/input-interfaces.js"></script>
+  <script language="javascript" src="./visualization/screen.js"></script>
+  <script language="javascript" src="./visualization/dec-display.js"></script>
   <script language="javascript">
   function SmokingTest( ) {
     var clk = new Clock( 1, 50 );
@@ -54,12 +56,18 @@
 
     var idigit = new InputDigits( word, "digitPanel", "word" );
 
+    var dec_display_unsigned = new DecimalDisplay( word, false, "digitPanel", "unsigned_word" );
+    var dec_display_signed = new DecimalDisplay( word, true, "digitPanel", "signed_word" );
+
     var simulator = new Simulator( sigs, 0 );
-    var tm = new TimeSequenceMonitor( "timeseq", 768, sigs );
-    tm.init();
+    var tm = new TimeSequenceMonitor( sigs, "timeseq", 768 );
+    var screen = new PixelScreen( sigs, "screen", 64, 64, 8 );
     var loop = new MainLoop( simulator, 10, 1000 );
     loop.register_monitor( new ConsoleMonitor() );
     loop.register_monitor( tm );
+    loop.register_monitor( dec_display_unsigned );
+    loop.register_monitor( dec_display_signed );
+    loop.register_monitor( screen );
     function update( )
     {
       loop.update();
@@ -83,6 +91,9 @@
   </div>
   <div id="signalPanel" style="padding: 20px"></div>
   <div id="digitPanel" style="padding: 20px"></div>
+  <div>
+  <canvas id="screen"></canvas>
+  </div>
   <div>
   <canvas id="timeseq"></canvas>
   </div>
