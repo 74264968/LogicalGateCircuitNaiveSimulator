@@ -1,3 +1,6 @@
+/*
+  2023-07-07
+*/
 class DecimalDisplay {
   constructor( signals_lsb2msb, signed, parent_dom_id, label_name ) {
     var label = document.createElement("label");

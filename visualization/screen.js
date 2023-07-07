@@ -1,3 +1,6 @@
+/*
+  2023-07-07
+*/
 class PixelScreen {
   constructor( signals, canvas_id, width, height, pixel_size ) {
       this.canvas = document.getElementById( canvas_id );

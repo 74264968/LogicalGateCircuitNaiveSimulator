@@ -184,8 +184,34 @@ class OrGate extends Component {
     }
 
     this.determine_signal( tick, sig );
+    return sig;
   }
 }
+
+class NOrGate extends Component {
+  constructor( name ) {
+    super( S_COMPLEX, [], "NOR_GATE", name );
+  }
+
+  peek( tick ) {
+    if( tick < 0 ) return 0;
+    var sig = this.get_determined_signal( tick );
+    if( sig >= 0 ) return sig;
+
+    var sig = 1;
+    for( var i = 0 ; i < this.inputs.length ; i++ ) {
+      if( this.inputs[i].peek( tick - 1 ) > 0 ) { 
+        sig = 0;
+        break;
+      }
+    }
+
+    this.determine_signal( tick, sig );
+    return sig;
+  }
+}
+
+
 
 
 class AndGate extends Component {
@@ -208,5 +234,7 @@ class AndGate extends Component {
     }
 
     this.determine_signal( tick, sig );
+    return sig;
   }
 }
+
