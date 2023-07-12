@@ -21,9 +21,9 @@
     var d2 = new Connector( null, 2, "delay_2" );
     var d3 = new Connector( null, 3, "delay_3" );
 
-    d1.connector_to( clk );
-    d2.connector_to( clk );
-    d3.connector_to( clk );
+    d1.connect_to( clk );
+    d2.connect_to( clk );
+    d3.connect_to( clk );
     var g_Or_d1_d2_d3 = new OrGate("or_d1_d2_d3" );
     g_Or_d1_d2_d3.inputs.push( d1 );
     g_Or_d1_d2_d3.inputs.push( d2 );

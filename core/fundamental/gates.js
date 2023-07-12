@@ -5,6 +5,14 @@ const S_SIMPLE = "simple";
 const S_COMPLEX = "complex";
 
 var COMPONENT_COUNT = 0;
+var ALL_COMPONENTS = [];
+function GET_COMPONENT_STAT() {
+  var connections = 0;
+  for( var i = 0 ; i < ALL_COMPONENTS.length ; i++ ) {
+    connections += ALL_COMPONENTS[i].inputs.length;
+  }
+  return [ALL_COMPONENTS.length, connections, COMPONENT_STAT];
+}
 const COMPONENT_STAT = {};
 
 class Component {
@@ -13,6 +21,7 @@ class Component {
     this.inputs = inputs;
     this.type_name = type_name;
     this.signal_determined = []; //[tick_end, signal]
+    ALL_COMPONENTS.push( this );
 
     if( !name ) {
       name = "auto_" + type_name + "_" + (COMPONENT_COUNT++);
@@ -125,7 +134,7 @@ class Connector extends Component
     else this.delay = 0;
   }
 
-  connector_to( other ) {
+  connect_to( other ) {
     if( this.other ) this.inputs.pop();
     this.other = other;
     if( this.other ) this.inputs.push( this.other );
@@ -136,7 +145,7 @@ class Connector extends Component
     if( this.other ) {
       return this.other.peek( tick - this.delay );
     }
-    throw( "Connector has no input source" );
+    return 0;
   }
 }
 
