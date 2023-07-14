@@ -6,19 +6,19 @@ class Bit {
   /*
     based on SRLatch
   */
-  constructor( active_input, new_value_input, prefix ) {
+  constructor( enable_input, new_value_input, prefix ) {
     this.val = new NOrGate( prefix + "_val" );
     this.nval = new NOrGate( prefix + "_nval" );
 
     var and_active_new_value = new AndGate( prefix + "_inner_&_a_v" );
     {
-      and_active_new_value.inputs.push( active_input );
+      and_active_new_value.inputs.push( enable_input );
       and_active_new_value.inputs.push( new_value_input );
     }
     var n_new_value = new NotGate( prefix + "_inner_nv", new_value_input );
     var and_active_n_new_value = new AndGate( prefix + "_inner_&_a_nv" );
     {
-      and_active_n_new_value.inputs.push( active_input );
+      and_active_n_new_value.inputs.push( enable_input );
       and_active_n_new_value.inputs.push( n_new_value );
     }
 
@@ -39,12 +39,12 @@ class Bit {
 }
 
 class Octet {
-  constructor( active_input, new_value_inputs, prefix ) {
+  constructor( enable_input, new_value_inputs, prefix ) {
     if( new_value_inputs.length != 8 ) throw "An Octet should be 8 bit width";
     this.bits = [];
     this.network = [];
     for( var i = 0 ; i < new_value_inputs.length ; i++ ) {
-      var bit = new Bit( active_input, new_value_inputs[i], prefix + "_b" + i );
+      var bit = new Bit( enable_input, new_value_inputs[i], prefix + "_b" + i );
       this.bits.push( bit );
       this.network = this.network.concat( bit.network );
     }
@@ -124,5 +124,40 @@ class Decoder {
   }
 }
 
-class RWBlock {
+class Storage {
+  constructor( enable_input, addr_decoder, addr_start, capacity, prefix ) {
+    this.addr_start = addr_start;
+    this.capacity = capacity;
+
+    this.network = [];
+
+    this.new_value_inputs = [];
+    for( var i = 0 ; i < 8 ; i++ ) {
+      var c = new Connector( null, 0, prefix + "_v" + i );
+      this.new_value_inputs.push( c );
+    }
+    this.network = this.network.concat( this.new_value_inputs );
+
+    this.octets = [];
+    for( var i = addr_start ; i < addr_start + capacity ; i++ ) {
+      var octet_enable = new AndGate( prefix + "_ot" + i + "_enable" );
+      {
+        octet_enable.inputs.push( enable_input );
+        octet_enable.inputs.push( addr_decoder.get_output_endpoint_at( i ) );
+      }
+      var octet = new Octet( octet_enable, this.new_value_inputs, prefix + "_ot" + i );
+      this.octets.push( octet );
+      this.network.push( octet_enable );
+      this.network = this.network.concat( octet.network );
+    }
+
+  }
+  
+  get_input_endpoint_at( pos_start_from_lsb ) {
+    return this.new_value_inputs[pos_start_from_lsb];
+  }
+
+  get_output_endpoints_at( addr ) {
+    return this.octets[ addr - this.addr_start ].get_output_endpoints();
+  }
 }

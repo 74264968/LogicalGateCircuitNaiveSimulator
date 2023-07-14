@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    button {border:1px solid #338; padding:4px;}
+    button:hover {border:1px solid #996;cursor:pointer}
+    .active {background-color: #33aa44; color:#eef}
+    .inactive {background-color: none;}
+  </style>
+  <script language="javascript" src="/core/fundamental/gates.js"></script>
+  <script language="javascript" src="/core/fundamental/simulating.js"></script>
+  <script language="javascript" src="/core/prefabs/stateful.js"></script>
+  <script language="javascript" src="/visualization/time-sequence.js"></script>
+  <script language="javascript" src="/visualization/input-interfaces.js"></script>
+  <script language="javascript" src="/visualization/screen.js"></script>
+  <script language="javascript" src="/visualization/dec-display.js"></script>
+  <script language="javascript">
+  function Onload( ) {
+    var ADDR_WIDTH = 5; // 32 bytes
+    var TOTAL_CAPACITY = 1<<ADDR_WIDTH;
+    var RAM_COUNT = 3;
+    var RAM_CAPACITY = Math.floor(TOTAL_CAPACITY / RAM_COUNT);
+
+    var clk = new Clock( 1, 50 );
+    var enable = new Signal( 0, "enable" );
+
+    var new_value_inputs = [];
+    for( var i = 0 ; i < 8 ; i++ ) {
+      new_value_inputs.push( new Signal( 0, "v_bit" + i ) );
+    }
+    var addr_inputs = [];
+    for( var i = 0 ; i < ADDR_WIDTH ; i++ ) {
+      addr_inputs.push( new Signal( 0, "adr_bit" + i ) );
+    }
+
+    var decoder = new Decoder( ADDR_WIDTH, "decoder", 3 );
+    {
+      for( var i = 0 ; i < ADDR_WIDTH ; i++ ) {
+        decoder.get_input_endpoint_at( i ).connect_to( addr_inputs[i] );
+      }
+    }
+
+    var storages = [];
+    for( var i = 0 ; i < RAM_COUNT ; i++ ) {
+      var addr_start = i * RAM_CAPACITY;
+      var capacity = Math.min( RAM_CAPACITY, TOTAL_CAPACITY - addr_start );
+      var s = new Storage( enable, decoder, addr_start, capacity, "store[" + i + "]" );
+      for( var j = 0 ; j < 8 ; j++ ) {
+        s.get_input_endpoint_at( j ).connect_to( new_value_inputs[j] );
+      }
+      storages.push( s );
+    }
+
+    var sigs = [];
+    sigs = sigs.concat( [clk, enable] );
+    sigs = sigs.concat( new_value_inputs );
+    sigs = sigs.concat( addr_inputs );
+    sigs = sigs.concat( decoder.network );
+    for( var i = 0 ; i < storages.length ; i++ ) {
+      sigs = sigs.concat( storages[i].network );
+    }
+
+    var seqs = [];
+    seqs = seqs.concat( [clk, enable] );
+    seqs = seqs.concat( addr_inputs );
+    seqs = seqs.concat( new_value_inputs );
+
+    var simulator = new Simulator( sigs, 0 );
+    var loop = new MainLoop( simulator, 1, 50 );
+
+    //setup inputs
+    var addr = new InputDigits( addr_inputs, "inputPanel", "address: ");
+    var value = new InputDigits( new_value_inputs, "inputPanel", "value: ");
+    var e = new InputSwitch( enable, "inputPanel", "active", "inactive", 0 );
+
+    for( var i = 0 ; i < storages.length ; i++ ) {
+      var s = storages[i];
+      for( var j = s.addr_start ; j < s.addr_start + s.capacity ; j++ ) {
+        var tmp = new DecimalDisplay( s.get_output_endpoints_at( j ), false, "outputPanel", 's[' + j + ']: ' );
+        loop.register_monitor( tmp );
+      }
+    }
+    var tm = new TimeSequenceMonitor( seqs, "timeseq", 768 );
+    loop.register_monitor( tm );
+
+
+    function update( )
+    {
+      loop.update();
+    }
+    setInterval( update, loop.frame_in_ms );
+    loop.start();
+
+    var btnResume = document.getElementById("btnResume");
+    btnResume.onclick = function() { loop.resume(); }
+
+    var btnStop = document.getElementById("btnStop");
+    btnStop.onclick = function() { loop.pause(); }
+
+  }
+  </script>
+</head>
+<body onload="javascript:Onload()">
+  <div>
+  <button id="btnResume">resume</button>
+  <button id="btnStop">stop</button>
+  </div>
+  <canvas id="timeseq"></canvas>
+  </div>
+  <div id="inputPanel" style="padding: 20px"></div>
+  <div id="outputPanel" style="padding: 20px"></div>
+  <div>
+  <canvas id="screen"></canvas>
+  </div>
+  <div>
+</body>
+</html>
