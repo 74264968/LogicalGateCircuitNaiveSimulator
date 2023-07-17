@@ -23,6 +23,7 @@
 
     var clk = new Clock( 1, 50 );
     var enable = new Signal( 0, "enable" );
+    var init = new Signal( 0, "init" );
 
     var new_value_inputs = [];
     for( var i = 0 ; i < 8 ; i++ ) {
@@ -44,7 +45,7 @@
     for( var i = 0 ; i < RAM_COUNT ; i++ ) {
       var addr_start = i * RAM_CAPACITY;
       var capacity = Math.min( RAM_CAPACITY, TOTAL_CAPACITY - addr_start );
-      var s = new Storage( enable, decoder, addr_start, capacity, "store[" + i + "]" );
+      var s = new Storage( enable, decoder, addr_start, capacity, "store[" + i + "]", init );
       for( var j = 0 ; j < 8 ; j++ ) {
         s.get_input_endpoint_at( j ).connect_to( new_value_inputs[j] );
       }
@@ -52,7 +53,7 @@
     }
 
     var sigs = [];
-    sigs = sigs.concat( [clk, enable] );
+    sigs = sigs.concat( [clk, enable, init] );
     sigs = sigs.concat( new_value_inputs );
     sigs = sigs.concat( addr_inputs );
     sigs = sigs.concat( decoder.network );
@@ -71,7 +72,9 @@
     //setup inputs
     var addr = new InputDigits( addr_inputs, "inputPanel", "address: ");
     var value = new InputDigits( new_value_inputs, "inputPanel", "value: ");
+    var ini = new InputSwitch( init, "inputPanel", "active", "inactive", 0 );
     var e = new InputSwitch( enable, "inputPanel", "active", "inactive", 0 );
+
 
     for( var i = 0 ; i < storages.length ; i++ ) {
       var s = storages[i];

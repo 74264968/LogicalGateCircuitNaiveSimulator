@@ -125,7 +125,7 @@ class Decoder {
 }
 
 class Storage {
-  constructor( enable_input, addr_decoder, addr_start, capacity, prefix ) {
+  constructor( enable_input, addr_decoder, addr_start, capacity, prefix, init_input ) {
     this.addr_start = addr_start;
     this.capacity = capacity;
 
@@ -143,7 +143,17 @@ class Storage {
       var octet_enable = new AndGate( prefix + "_ot" + i + "_enable" );
       {
         octet_enable.inputs.push( enable_input );
-        octet_enable.inputs.push( addr_decoder.get_output_endpoint_at( i ) );
+        if( init_input ) {
+          var init_or_addr = new OrGate( prefix + "_init_o_addr" + i );
+          {
+            init_or_addr.inputs.push( init_input );
+            init_or_addr.inputs.push( addr_decoder.get_output_endpoint_at( i ) );
+          }
+          octet_enable.inputs.push( init_or_addr );
+        }
+        else {
+          octet_enable.inputs.push( addr_decoder.get_output_endpoint_at( i ) );
+        }
       }
       var octet = new Octet( octet_enable, this.new_value_inputs, prefix + "_ot" + i );
       this.octets.push( octet );
