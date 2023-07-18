@@ -18,13 +18,24 @@
   <script language="javascript">
   function Onload( ) {
     var clk = new Clock( 1, 50 );
-    var sigs = [];
+    var not_clk = new NotGate( "not_clk", clk );
+    var sigs = [clk, not_clk];
+    var watching = [clk, not_clk];
+    const TOTAL_DETECTOR = 10;
+    var detectors = [];
+    for( var i = 0 ; i < TOTAL_DETECTOR ; i++ ) {
+      var tmp = new EdgeDetector( clk, i, "clk_edge_len" + i );
+      watching.push( tmp.get_output_endpoint() );
+      sigs = sigs.concat( tmp.network );
+
+      tmp = new EdgeDetector( not_clk, i, "not_clk_edge_len" + i );
+      watching.push( tmp.get_output_endpoint() );
+      sigs = sigs.concat( tmp.network );
+    }
     var simulator = new Simulator( sigs, 0 );
-    var tm = new TimeSequenceMonitor( sigs, "timeseq", 768 );
-    var screen = new PixelScreen( sigs, "screen", 64, 64, 8 );
-    var loop = new MainLoop( simulator, 1, 1000 );
+    var tm = new TimeSequenceMonitor( watching, "timeseq", 768 );
+    var loop = new MainLoop( simulator, 1, 200 );
     loop.register_monitor( tm );
-    loop.register_monitor( screen );
     function update( )
     {
       loop.update();
