@@ -36,6 +36,10 @@ class Bit {
     return this.val;
   }
 
+  get_n_output_endpoint( ) {
+    return this.nval;
+  }
+
 }
 
 class Octet {
