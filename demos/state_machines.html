@@ -23,7 +23,7 @@
     const MAX_ENABLE_PEAK_WIDTH = 11;
     START_RECORDING_COMPONENT();
     var seq_sigs = [];
-    var clk = new Clock( 1, 50 );
+    var clk = new Clock( 1, 100 );
     var activate = new Signal(0, "active");
     new InputSwitch( activate, "signalPanel", "active", "inactive", 0 );
 
@@ -72,13 +72,14 @@
 
     seq_sigs.push( moore.valid );
     seq_sigs.push( mealy.valid );
+    seq_sigs = seq_sigs.concat( moore.translations );
 
 
 
 
     var simulator = new Simulator( GET_RECORDING_SOFAR(), 0 );
     var tm = new TimeSequenceMonitor( seq_sigs, "timeseq", 768 );
-    var loop = new MainLoop( simulator, 1, 50 );
+    var loop = new MainLoop( simulator, 1, 20 );
     loop.register_monitor( tm );
     loop.register_monitor( moore_state );
     loop.register_monitor( mealy_state );

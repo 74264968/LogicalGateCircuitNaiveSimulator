@@ -15,7 +15,7 @@ class StateMachine {
                   +-------And<======+<-----And<----------- activate
                   |                 ^       ^              
                   |                 |       |       +---+
-                  v  ____           |       |       v   | (3. dee)
+                  v  ____        (delay)    |       v   | (3. dee)
       (cur_state) L>|    | data     |       +-------Or--+
       event  ------>| fi |------>Di-+               ^
                     |____|   *   ^                  |
@@ -90,9 +90,17 @@ class StateMachine {
 
     this.adjusted_enable = new AndGate( name + "_adj_en" );
     {
-      //TODO: use edge detect to improve
-      this.adjusted_enable.inputs.push( enable_input );
+      //use edge detect to improve
+      this.ed = new EdgeDetector( enable_input, 4, "_ed_en" );
+      this.adjusted_enable.inputs.push( this.ed.get_output_endpoint() );
+      for( var i = 0 ; i < this.ed.network.length ; i++ ) {
+        this.network.push( this.ed.network[i] );
+      }
+
+      //this.adjusted_enable.inputs.push( enable_input );
+
       this.adjusted_enable.inputs.push( this.valid );
+
       this.network.push( this.adjusted_enable );
     }
 
@@ -111,8 +119,10 @@ class StateMachine {
       }
       var inbit_i = new AndGate( name + "_in_sb" + i );
       {
-        inbit_i.inputs.push( Di.get_output_endpoint() );
+        var delay = new Connector( Di.get_output_endpoint(), 5, "_d2_sb" + i ); 
+        inbit_i.inputs.push( delay );// /*Di.get_output_endpoint()*/ );
         inbit_i.inputs.push( active_and_dee );
+        this.network.push( delay );
         this.network.push( inbit_i );
       }
       var not_inbit_i = new NotGate( name + "_not_in_sb" + i, inbit_i );
@@ -140,7 +150,7 @@ class StateMachine {
     this.translations = [];
     for( var i = 0 ; i < edges.length ; i++ ) {
       var edge = edges[i];
-      var trans = new AndGate( name + "_t_" + edge[0] + ":" + edge[1] );
+      var trans = new AndGate( name + "_t_" + edge[0] + " " + edge[1] + "("+edge[0]+":"+edge[1]+")" );
       var state_index = this.state2index[edge[0]];
       var event = edge[1];
       var numeric_event = event;
