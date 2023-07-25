@@ -18,12 +18,12 @@
   <script language="javascript" src="/visualization/dec-display.js"></script>
   <script language="javascript">
   function Onload( ) {
-    const STATE_COUNT = 17;
+    const STATE_COUNT = 1024;
     const EVENT_COUNT = 3;
     const MAX_ENABLE_PEAK_WIDTH = 11;
     START_RECORDING_COMPONENT();
     var seq_sigs = [];
-    var clk = new Clock( 1, 100 );
+    var clk = new Clock( 1, 30 );
     var activate = new Signal(0, "active");
     new InputSwitch( activate, "signalPanel", "active", "inactive", 0 );
 
@@ -70,9 +70,12 @@
     new InputSwitch( event2, "inputPanel", "active", "inactive", 0 );
     var mealy_state = new DecimalDisplay( mealy.get_output_endpoints(), false, "digitPanel", "mealy_state: " );
 
+    var mealy_clock = new StateMachine( 0, mealy_edges, [event, event2], activate, clk, "mealy_use_clk" );
+    var mealy_clock_state = new DecimalDisplay( mealy_clock.get_output_endpoints(), false, "digitPanel", "mealy_clock_state: " );
+
     seq_sigs.push( moore.valid );
     seq_sigs.push( mealy.valid );
-    seq_sigs = seq_sigs.concat( moore.translations );
+    //seq_sigs = seq_sigs.concat( moore.translations );
 
 
 
@@ -83,6 +86,7 @@
     loop.register_monitor( tm );
     loop.register_monitor( moore_state );
     loop.register_monitor( mealy_state );
+    loop.register_monitor( mealy_clock_state );
     function update( )
     {
       loop.update();

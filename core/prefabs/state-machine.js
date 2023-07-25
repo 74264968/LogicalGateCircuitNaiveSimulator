@@ -28,6 +28,7 @@ class StateMachine {
 
   */
   constructor( start_state, edges, event_inputs_from_lsb2msb, activate_input, enable_input, name ) {
+    const ENABLE_SPAN = 4;
     //0. check the input
     for( var i = 0 ; i < edges.length ; i++ ) {
       var edge = edges[i];
@@ -91,7 +92,7 @@ class StateMachine {
     this.adjusted_enable = new AndGate( name + "_adj_en" );
     {
       //use edge detect to improve
-      this.ed = new EdgeDetector( enable_input, 4, "_ed_en" );
+      this.ed = new EdgeDetector( enable_input, ENABLE_SPAN, "_ed_en" );
       this.adjusted_enable.inputs.push( this.ed.get_output_endpoint() );
       for( var i = 0 ; i < this.ed.network.length ; i++ ) {
         this.network.push( this.ed.network[i] );
@@ -119,7 +120,7 @@ class StateMachine {
       }
       var inbit_i = new AndGate( name + "_in_sb" + i );
       {
-        var delay = new Connector( Di.get_output_endpoint(), 5, "_d2_sb" + i ); 
+        var delay = new Connector( Di.get_output_endpoint(), ENABLE_SPAN + 1, "_d2_sb" + i ); 
         inbit_i.inputs.push( delay );// /*Di.get_output_endpoint()*/ );
         inbit_i.inputs.push( active_and_dee );
         this.network.push( delay );
