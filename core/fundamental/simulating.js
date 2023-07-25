@@ -23,19 +23,24 @@ class MainLoop {
     this.frame_in_ms = frame_in_ms;
     this.next_tick = 0;
     this.monitors = [];
-    this.running = false;
+    this.running = 0;
   }
 
   start() {
-    this.running = true;
+    this.running = 1000000;
   }
 
   pause() {
-    this.running = false;
+    this.running = 0;
   }
 
   resume() {
-    this.running = true;
+    this.running = 1000000;
+  }
+
+  step( k ) {
+    if( !k ) k = 1;
+    this.running = k;
   }
 
   register_monitor( monitor ) {
@@ -43,7 +48,8 @@ class MainLoop {
   }
 
   update() {
-    if( this.running ) {
+    if( this.running > 0 ) {
+      this.running--;
       this.next_tick += this.tick_each_frame;
       this.simulator.update( this.next_tick );
       for( var i = 0 ; i < this.monitors.length ; i++ ) {

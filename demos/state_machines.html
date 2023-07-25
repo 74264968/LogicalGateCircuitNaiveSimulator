@@ -18,14 +18,70 @@
   <script language="javascript" src="/visualization/dec-display.js"></script>
   <script language="javascript">
   function Onload( ) {
+    const STATE_COUNT = 17;
+    const EVENT_COUNT = 3;
+    const MAX_ENABLE_PEAK_WIDTH = 11;
+    START_RECORDING_COMPONENT();
+    var seq_sigs = [];
     var clk = new Clock( 1, 50 );
-    var sigs = [];
-    var simulator = new Simulator( sigs, 0 );
-    var tm = new TimeSequenceMonitor( sigs, "timeseq", 768 );
-    var screen = new PixelScreen( sigs, "screen", 64, 64, 8 );
-    var loop = new MainLoop( simulator, 1, 1000 );
+    var activate = new Signal(0, "active");
+    new InputSwitch( activate, "signalPanel", "active", "inactive", 0 );
+
+    var enable = new OrGate( "enable" );
+    for( var i = 2 ; i <= MAX_ENABLE_PEAK_WIDTH ; i++ ) {
+      var ctl = new Signal( 0, "enable_" + i );
+      var p = new EdgeDetector( clk, i, "ed_" + i );
+      var tmp = new AndGate( "enable_it_" + i );
+      {
+        tmp.inputs.push( ctl );
+        tmp.inputs.push( p.get_output_endpoint() );
+      }
+      new InputSwitch( ctl, "signalPanel", "active", "inactive", 0 );
+      enable.inputs.push( tmp );
+    }
+    seq_sigs.push( clk );
+    seq_sigs.push( activate );
+    seq_sigs.push( enable );
+
+    // Moore Machine
+    var moore_edges = [];
+    for( var i = 0 ; i < STATE_COUNT ; i++ ) {
+      var edge = [i, '', (i+1)%STATE_COUNT];
+      moore_edges.push( edge );
+    }
+    var moore = new StateMachine( 0, moore_edges, [], activate, enable, "moore" );
+    var moore_state = new DecimalDisplay( moore.get_output_endpoints(), false, "digitPanel", "moore_state: " );
+
+
+    // Mealy Machine
+    var mealy_edges = [];
+    var event = new Signal( 0, "event" );
+    var event2 = new Signal( 0, "event2" );
+    for( var i = 0 ; i < STATE_COUNT ; i++ ) {
+      var edge = [i, 0, (i+1)%STATE_COUNT];
+      mealy_edges.push( edge );
+    }
+    for( var i = 0 ; i < STATE_COUNT ; i++ ) {
+      var edge = [i, 1, (i+3)%STATE_COUNT];
+      mealy_edges.push( edge );
+    }
+    var mealy = new StateMachine( 0, mealy_edges, [event, event2], activate, enable, "mealy" );
+    new InputSwitch( event, "inputPanel", "active", "inactive", 0 );
+    new InputSwitch( event2, "inputPanel", "active", "inactive", 0 );
+    var mealy_state = new DecimalDisplay( mealy.get_output_endpoints(), false, "digitPanel", "mealy_state: " );
+
+    seq_sigs.push( moore.valid );
+    seq_sigs.push( mealy.valid );
+
+
+
+
+    var simulator = new Simulator( GET_RECORDING_SOFAR(), 0 );
+    var tm = new TimeSequenceMonitor( seq_sigs, "timeseq", 768 );
+    var loop = new MainLoop( simulator, 1, 50 );
     loop.register_monitor( tm );
-    loop.register_monitor( screen );
+    loop.register_monitor( moore_state );
+    loop.register_monitor( mealy_state );
     function update( )
     {
       loop.update();
@@ -38,6 +94,15 @@
 
     var btnStop = document.getElementById("btnStop");
     btnStop.onclick = function() { loop.pause(); }
+
+    var btnStep = document.getElementById("btnStep");
+    btnStep.onclick = function() { loop.step(); }
+
+    var btnStep10 = document.getElementById("btnStep_10");
+    btnStep10.onclick = function() { loop.step( 10 ); }
+
+
+
 
     /*
     var bad_edge_a = ['a','a1','k'];
@@ -61,9 +126,12 @@
   <div>
   <button id="btnResume">resume</button>
   <button id="btnStop">stop</button>
+  <button id="btnStep">step</button>
+  <button id="btnStep_10">step 10</button>
   </div>
   <div id="signalPanel" style="padding: 20px"></div>
   <div id="digitPanel" style="padding: 20px"></div>
+  <div id="inputPanel" style="padding: 20px"></div>
   <div>
   <canvas id="screen"></canvas>
   </div>

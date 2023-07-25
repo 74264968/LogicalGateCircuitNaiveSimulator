@@ -17,8 +17,8 @@ class StateMachine {
                   |                 |       |       +---+
                   v  ____           |       |       v   | (3. dee)
       (cur_state) L>|    | data     |       +-------Or--+
-      event  ------>| fi |------>Di-+----           ^
-                    |____|   *   ^    (out)         |
+      event  ------>| fi |------>Di-+               ^
+                    |____|   *   ^                  |
                              *   |                  |
                              *   +---------And<-----+------- enable
                        (next_state)         ^
@@ -50,8 +50,8 @@ class StateMachine {
 
     this.network = [];
 
-    // allocate id for each state
-    this.state2id = {};
+    // allocate index for each state
+    this.state2index = {};
     this.next_id = 0
     this.state2index[start_state] = this.next_id++;
 
@@ -59,12 +59,12 @@ class StateMachine {
       var edge = edges[i];
 
       var src_state = edge[0];
-      if( !this.state2index.hasOwnProperty( src_state ) {
+      if( !this.state2index.hasOwnProperty( src_state ) ) {
         this.state2index[ src_state ] = this.next_id++;
       }
 
       var dst_state = edge[2];
-      if( !this.state2index.hasOwnProperty( dst_state ) {
+      if( !this.state2index.hasOwnProperty( dst_state ) ) {
         this.state2index[ dst_state ] = this.next_id++;
       }
     }
@@ -83,16 +83,29 @@ class StateMachine {
       this.network.push( active_and_dee );
     }
 
+    this.valid = new OrGate( name + "_valid_trans" );
+    {
+      this.network.push( this.valid );
+    }
+
+    this.adjusted_enable = new AndGate( name + "_adj_en" );
+    {
+      //TODO: use edge detect to improve
+      this.adjusted_enable.inputs.push( enable_input );
+      this.adjusted_enable.inputs.push( this.valid );
+      this.network.push( this.adjusted_enable );
+    }
 
     this.funs = [];
     this.Ds = [];
     this.inbits = [];
+    this.not_inbits = [];
     for( var i = 0 ; (1<<i) <= this.next_id ; i++ ) {
       var fi = new OrGate( name + "_" + "f" + i );
       {
         this.network.push( fi );
       }
-      var Di = new Bit( enable_input, fi, name + "_sb" + i );
+      var Di = new Bit( this.adjusted_enable, fi, name + "_sb" + i );
       {
         this.network.push( Di.network );
       }
@@ -102,30 +115,77 @@ class StateMachine {
         inbit_i.inputs.push( active_and_dee );
         this.network.push( inbit_i );
       }
+      var not_inbit_i = new NotGate( name + "_not_in_sb" + i, inbit_i );
+      {
+        this.network.push( not_inbit_i );
+      }
       this.funs.push( fi );
       this.Ds.push( Di );
       this.inbits.push( inbit_i );
+      this.not_inbits.push( not_inbit_i );
+    }
+
+    this.state_bit_width = this.funs.length;
+    this.not_event_inputs = [];
+    for( var i = 0 ; i < event_inputs_from_lsb2msb.length ; i++ ) {
+      var not_event_i = new NotGate( name + "_not_ev" + i, event_inputs_from_lsb2msb[i] );
+      this.not_event_inputs.push( not_event_i );
+      this.network.push( not_event_i );
     }
 
     // build each fun for each bit
     // each fun can be written in form: (x & !y & ...) || (x & y & ...) || ... || ..
-    // build the small part for each translation (src_state, event)
 
+    // build the small part for each translation (src_state, event)
     this.translations = [];
     for( var i = 0 ; i < edges.length ; i++ ) {
       var edge = edges[i];
       var trans = new AndGate( name + "_t_" + edge[0] + ":" + edge[1] );
-      // TODO: state, edge
+      var state_index = this.state2index[edge[0]];
+      var event = edge[1];
+      var numeric_event = event;
+      if( typeof numeric_event === "string" ) {
+        // lsb to msb, reverse it
+        numeric_event = parseInt( numeric_event.split('').reverse().join(''), 2 );
+      }
+      // state
+      for( var b = 0 ; b < this.state_bit_width; b++ ) {
+        if( state_index & (1<<b) ) {
+          trans.inputs.push( this.inbits[b] );
+        } else {
+          trans.inputs.push( this.not_inbits[b] );
+        }
+      }
+
+      // event
+      for( var b = 0 ; b < event_inputs_from_lsb2msb.length ; b++ ) {
+        if( numeric_event & (1<<b) ) {
+          trans.inputs.push( event_inputs_from_lsb2msb[b] );
+        } else {
+          trans.inputs.push( this.not_event_inputs[b] );
+        }
+      }
+
+      this.translations.push( trans );
+      this.valid.inputs.push( trans );
+      this.network.push( trans );
     }
 
-    // build the 
+    // build the big one
     for( var b = 0 ; b < this.funs.length ; b++ ) {
       for( var i = 0 ; i < edges.length ; i++ ) {
         var edge = edges[i];
-        // TODO
+        var dst_state_iondex = this.state2index[edge[2]];
+        if( dst_state_iondex & (1<<b) ) {
+          this.funs[b].inputs.push( this.translations[i] );
+        }
       }
     }
 
+  }
+
+  get_output_endpoints( ) {
+    return this.inbits;//this.Ds.map( (x) => x.get_output_endpoint() );
   }
 
 

@@ -4,6 +4,21 @@
 const S_SIMPLE = "simple";
 const S_COMPLEX = "complex";
 
+var __record_component_flag = false;
+var __recorded_components = [];
+function START_RECORDING_COMPONENT( ) {
+  __record_component_flag = true;
+  __recorded_components = [];
+}
+
+function END_RECORDING_COMPONENT() {
+  __record_component_flag = false;
+}
+
+function GET_RECORDING_SOFAR() {
+  return __recorded_components;
+}
+
 var COMPONENT_COUNT = 0;
 var ALL_COMPONENTS = [];
 function GET_COMPONENT_STAT() {
@@ -22,6 +37,9 @@ class Component {
     this.type_name = type_name;
     this.signal_determined = []; //[tick_end, signal]
     ALL_COMPONENTS.push( this );
+    if( __record_component_flag ) {
+      __recorded_components.push( this );
+    }
 
     if( !name ) {
       name = "auto_" + type_name + "_" + (COMPONENT_COUNT++);
