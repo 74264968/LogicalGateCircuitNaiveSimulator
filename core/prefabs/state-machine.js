@@ -14,7 +14,7 @@ class StateMachine {
                       (1. inbit_i)       (2. aad)
                   +-------And<======+<-----And<----------- activate
                   |                 ^       ^              
-                  |                 |       |       +---+
+                  |                 |     (delay)   +---+
                   v  ____        (delay)    |       v   | (3. dee)
       (cur_state) L>|    | data     |       +-------Or--+
       event  ------>| fi |------>Di-+               ^
@@ -29,6 +29,7 @@ class StateMachine {
   */
   constructor( start_state, edges, event_inputs_from_lsb2msb, activate_input, enable_input, name ) {
     const ENABLE_SPAN = 4;
+    const FIRST_ENABLE_ACTVICE_SAFE_MARGIN = 7;
     //0. check the input
     for( var i = 0 ; i < edges.length ; i++ ) {
       var edge = edges[i];
@@ -80,7 +81,10 @@ class StateMachine {
     var active_and_dee = new AndGate( name + "_aad" );
     {
       active_and_dee.inputs.push( activate_input );
-      active_and_dee.inputs.push( detect_ever_enable );
+      var delay = new Connector( detect_ever_enable, FIRST_ENABLE_ACTVICE_SAFE_MARGIN, name + "_easm" );
+      active_and_dee.inputs.push( delay );
+      this.safe_margin = delay;
+      this.network.push( delay );
       this.network.push( active_and_dee );
     }
 
@@ -120,7 +124,7 @@ class StateMachine {
       }
       var inbit_i = new AndGate( name + "_in_sb" + i );
       {
-        var delay = new Connector( Di.get_output_endpoint(), ENABLE_SPAN + 1, "_d2_sb" + i ); 
+        var delay = new Connector( Di.get_output_endpoint(), ENABLE_SPAN + 1, name + "_d2_sb" + i ); 
         inbit_i.inputs.push( delay );// /*Di.get_output_endpoint()*/ );
         inbit_i.inputs.push( active_and_dee );
         this.network.push( delay );

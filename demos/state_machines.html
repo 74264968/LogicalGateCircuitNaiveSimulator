@@ -23,7 +23,7 @@
     const MAX_ENABLE_PEAK_WIDTH = 11;
     START_RECORDING_COMPONENT();
     var seq_sigs = [];
-    var clk = new Clock( 1, 30 );
+    var clk = new Clock( 1, 100 );
     var activate = new Signal(0, "active");
     new InputSwitch( activate, "signalPanel", "active", "inactive", 0 );
 
@@ -73,8 +73,13 @@
     var mealy_clock = new StateMachine( 0, mealy_edges, [event, event2], activate, clk, "mealy_use_clk" );
     var mealy_clock_state = new DecimalDisplay( mealy_clock.get_output_endpoints(), false, "digitPanel", "mealy_clock_state: " );
 
-    seq_sigs.push( moore.valid );
     seq_sigs.push( mealy.valid );
+    seq_sigs.push( event );
+    seq_sigs.push( event2 );
+    seq_sigs.push( moore.valid );
+    seq_sigs.push( moore.adjusted_enable );
+    seq_sigs.push( moore.safe_margin );
+    //seq_sigs = seq_sigs.concat( moore.translations );
     //seq_sigs = seq_sigs.concat( moore.translations );
 
 

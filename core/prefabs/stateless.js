@@ -9,7 +9,7 @@ class EdgeDetector {
     edge_detect.inputs.push( input );
     this.output = new OrGate( prefix + "_o" );
     this.output.inputs.push( edge_detect );
-    for( var i = 1 ; i <= last ; i++ ) {
+    for( var i = 0 ; i < last ; i++ ) {
       var conn = new Connector( edge_detect, i, prefix + "_d" + i );
       this.output.inputs.push( conn );
       this.network.push( conn );
