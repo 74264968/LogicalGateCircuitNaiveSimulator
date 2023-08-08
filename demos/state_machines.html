@@ -16,6 +16,7 @@
   <script language="javascript" src="/visualization/input-interfaces.js"></script>
   <script language="javascript" src="/visualization/screen.js"></script>
   <script language="javascript" src="/visualization/dec-display.js"></script>
+  <script language="javascript" src="/visualization/tracer.js"></script>
   <script language="javascript">
   function Onload( ) {
     const STATE_COUNT = 1024;
@@ -82,6 +83,8 @@
     //seq_sigs = seq_sigs.concat( moore.translations );
     //seq_sigs = seq_sigs.concat( moore.translations );
 
+    var tracer_mealy_clock = new Tracer( mealy_clock.get_output_endpoints(), "tracing", "mealy_clock" );
+
 
 
 
@@ -92,6 +95,7 @@
     loop.register_monitor( moore_state );
     loop.register_monitor( mealy_state );
     loop.register_monitor( mealy_clock_state );
+    loop.register_monitor( tracer_mealy_clock );
     function update( )
     {
       loop.update();
@@ -142,6 +146,7 @@
   <div id="signalPanel" style="padding: 20px"></div>
   <div id="digitPanel" style="padding: 20px"></div>
   <div id="inputPanel" style="padding: 20px"></div>
+  <div id="tracing" style="padding: 20px"></div>
   <div>
   <canvas id="screen"></canvas>
   </div>
