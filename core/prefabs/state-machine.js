@@ -27,8 +27,19 @@ class StateMachine {
 
 
   */
+
+  extend_network( list_or_one ) {
+    if( typeof( list_or_one ) === 'object' ) {
+      for( var i = 0 ; i < list_or_one.length ; i++ ) {
+        this.network.push( list_or_one[i] );
+      }
+    } else {
+      this.network.push( list_or_one );
+    }
+  }
+
   constructor( start_state, edges, event_inputs_from_lsb2msb, activate_input, enable_input, name ) {
-    const ENABLE_SPAN = 4;
+    const ENABLE_SPAN = 3;
     const FIRST_ENABLE_ACTVICE_SAFE_MARGIN = 7;
     //0. check the input
     for( var i = 0 ; i < edges.length ; i++ ) {
@@ -120,7 +131,7 @@ class StateMachine {
       }
       var Di = new Bit( this.adjusted_enable, fi, name + "_sb" + i );
       {
-        this.network.push( Di.network );
+        this.extend_network( Di.network );
       }
       var inbit_i = new AndGate( name + "_in_sb" + i );
       {
