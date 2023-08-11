@@ -84,6 +84,8 @@
     //seq_sigs = seq_sigs.concat( moore.translations );
 
     var tracer_mealy_clock = new Tracer( mealy_clock.get_output_endpoints(), "tracing", "mealy_clock" );
+    var tracer_mealy_clock_funs = new Tracer( mealy_clock.funs, "tracing", "mealy_clock(funs)" );
+    var tracer_mealy_clock_adjusted_enable = new Tracer( [mealy_clock.adjusted_enable], "tracing", "mealy_clock(en)" );
 
 
 
@@ -96,6 +98,8 @@
     loop.register_monitor( mealy_state );
     loop.register_monitor( mealy_clock_state );
     loop.register_monitor( tracer_mealy_clock );
+    loop.register_monitor( tracer_mealy_clock_funs );
+    loop.register_monitor( tracer_mealy_clock_adjusted_enable );
     function update( )
     {
       loop.update();
