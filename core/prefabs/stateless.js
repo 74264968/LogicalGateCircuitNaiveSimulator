@@ -24,3 +24,44 @@ class EdgeDetector {
     return this.output;
   }
 }
+
+class Smooth {
+  constructor( input, prefix ) {
+    this.d2 = new Connector( input, 2, "_sm_d2" );
+    this.d1 = new Connector( input, 1, "_sm_d1" );
+    this.__x = new AndGate( prefix + "_sm_11x" );
+    {
+      this.__x.inputs.push( this.d2 );
+      this.__x.inputs.push( this.d1 );
+    }
+    this._x_ = new AndGate( prefix + "_sm_1x1" );
+    {
+      this._x_.inputs.push( this.d2 );
+      this._x_.inputs.push( input );
+    }
+    this.x__ = new AndGate( prefix + "_sm_x11" );
+    {
+      this.x__.inputs.push( this.d1 );
+      this.x__.inputs.push( input );
+    }
+    this.output = new OrGate( prefix + "_sm_out" );
+    {
+      this.output.inputs.push( this.__x );
+      this.output.inputs.push( this._x_ );
+      this.output.inputs.push( this.x__ );
+    }
+
+    this.network = [ 
+      this.d2, 
+      this.d1, 
+      this.__x, 
+      this._x_, 
+      this.x__,
+      this.output,
+      ];
+  }
+
+  get_output_endpoint( ) {
+    return this.output;
+  }
+}
