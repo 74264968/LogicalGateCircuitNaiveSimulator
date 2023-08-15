@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    button {border:1px solid #338; padding:4px;}
+    button:hover {border:1px solid #996;cursor:pointer}
+    .active {background-color: #33aa44; color:#eef}
+    .inactive {background-color: none;}
+  </style>
+  <script language="javascript" src="/core/fundamental/gates.js"></script>
+  <script language="javascript" src="/core/fundamental/simulating.js"></script>
+  <script language="javascript" src="/core/prefabs/stateful.js"></script>
+  <script language="javascript" src="/core/prefabs/stateless.js"></script>
+  <script language="javascript" src="/core/prefabs/stable-state-machine.js"></script>
+  <script language="javascript" src="/visualization/time-sequence.js"></script>
+  <script language="javascript" src="/visualization/input-interfaces.js"></script>
+  <script language="javascript" src="/visualization/screen.js"></script>
+  <script language="javascript" src="/visualization/dec-display.js"></script>
+  <script language="javascript" src="/visualization/tracer.js"></script>
+  <script language="javascript">
+  function Onload( ) {
+    START_RECORDING_COMPONENT();
+    var clk = new Clock( 1, 70 );
+    var seq_sigs = [];
+    var boot = new Signal( 0, "boot" );
+    new InputSwitch( boot, "signalPanel", "active", "inactive", 0 );
+    var bootstrap = new StableStateMachine( "off", [
+      ["off", '', "booting"],
+      ["booting", '', "on"],
+    ], [], boot, clk, "bootstrap" );
+
+    seq_sigs.push( clk );
+    seq_sigs.push( boot );
+    seq_sigs.push( bootstrap.get_state_decoded_output_by_name( 'off' ) );
+    seq_sigs.push( bootstrap.get_state_decoded_output_by_name( 'booting' ) );
+    seq_sigs.push( bootstrap.get_state_decoded_output_by_name( 'on' ) );
+
+    var d_edge = new Connector( null, 1, "d_on" );
+    var changes_when_d = new StableStateMachine( "0", [
+      ['0', '1', '1'],
+      ['1', '1', '0'],
+    ], [d_edge], 
+      bootstrap.get_state_decoded_output_by_name( 'booting' ), clk, 'cwd' );
+
+    seq_sigs.push( changes_when_d.get_state_decoded_output_by_name( '0' ) );
+    seq_sigs.push( changes_when_d.get_state_decoded_output_by_name( '1' ) );
+
+    var abcd = new StableStateMachine( "a" , [
+      ['a', '0', 'b'],
+      ['b', '0', 'c'],
+      ['c', '0', 'd'],
+      ['d', '0', 'a'],
+      ['a', '1', 'b'],
+      ['b', '1', 'c'],
+      ['c', '1', 'd'],
+      ['d', '1', 'a'],
+    ], [changes_when_d.get_state_decoded_output_by_name('1')], 
+      bootstrap.get_state_decoded_output_by_name( 'booting' ), clk, 'abcdcbada' );
+    d_edge.connect_to( abcd.get_state_decoded_output_by_name( 'd' ) );
+
+    seq_sigs.push( abcd.get_state_decoded_output_by_name( 'a' ) );
+    seq_sigs.push( abcd.get_state_decoded_output_by_name( 'b' ) );
+    seq_sigs.push( abcd.get_state_decoded_output_by_name( 'c' ) );
+    seq_sigs.push( abcd.get_state_decoded_output_by_name( 'd' ) );
+    
+
+    var tm = new TimeSequenceMonitor( seq_sigs, "timeseq", 768 );
+    var simulator = new Simulator( GET_RECORDING_SOFAR(), 0 );
+    var loop = new MainLoop( simulator, 1, 20 );
+    function update( )
+    {
+      loop.update();
+    }
+    setInterval( update, loop.frame_in_ms );
+    loop.register_monitor( tm );
+    loop.start();
+
+
+    var btnResume = document.getElementById("btnResume");
+    btnResume.onclick = function() { loop.resume(); }
+
+    var btnStop = document.getElementById("btnStop");
+    btnStop.onclick = function() { loop.pause(); }
+
+    var btnStep = document.getElementById("btnStep");
+    btnStep.onclick = function() { loop.step(); }
+
+    var btnStep10 = document.getElementById("btnStep_10");
+    btnStep10.onclick = function() { loop.step( 10 ); }
+
+  }
+  </script>
+</head>
+<body onload="javascript:Onload()">
+  <div>
+  <button id="btnResume">resume</button>
+  <button id="btnStop">stop</button>
+  <button id="btnStep">step</button>
+  <button id="btnStep_10">step 10</button>
+  </div>
+  <div id="signalPanel" style="padding: 20px"></div>
+  <div id="digitPanel" style="padding: 20px"></div>
+  <div id="inputPanel" style="padding: 20px"></div>
+  <div id="tracing" style="padding: 20px"></div>
+  <div>
+  <canvas id="screen"></canvas>
+  </div>
+  <div>
+  <canvas id="timeseq"></canvas>
+  </div>
+</body>
+</html>
