@@ -39,6 +39,7 @@ class StateMachine {
   }
 
   constructor( start_state, edges, event_inputs_from_lsb2msb, activate_input, enable_input, name ) {
+    console.warn( 'StateMachine is deprecated, use StableStateMachine instead' );
     const ENABLE_SPAN = 3;
     const FIRST_ENABLE_ACTVICE_SAFE_MARGIN = 7;
     //0. check the input
