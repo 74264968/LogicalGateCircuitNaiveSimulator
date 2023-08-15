@@ -116,6 +116,21 @@ class TimeSequenceMonitor {
       yy += LINE_HEIGHT;
     }
 
+    //4. draw signal color
+    xx = LABEL_PADDING;
+    yy = LINE_HEIGHT;
+    for( var i = 0 ; i < this.signals.length ; i++ ) {
+      var e = Math.min( tick, tick_end );
+      var s = this.signals[i].peek( e );
+      if( s ) {
+        ctx.save();
+        ctx.fillStyle = "green";
+        ctx.fillText( this.signals[i].name, xx, yy + (LINE_HEIGHT - FONT_SIZE) / 2, LABEL_WIDTH_IN_PX - 2*LABEL_PADDING );
+        ctx.restore();
+      }
+      yy += LINE_HEIGHT;
+    }
+
   }
 
 }
