@@ -11,21 +11,23 @@
                                v         
    init --->Not-----+         And-(delay)-+
                     |          |          |
-        +-----+     |          |          |
+        /-----\     |          |          |
         |     |     |          |          |
         |     |     v          v          v
-event ->|  Fi |-----+==>And-->Di_a----->Di_b--+
-        |     |           (output state)      |
-        |     |                               |
-        +-----+                               |
-           ^                                  |
-           |__________________________________|
-
-                               
-                               
+event ->|  Fi |-----+==>And-->Di_a----->Di_b--+  ...     Dx_a
+        |     |       (output state bit)      |           |
+        |     |                |              |           |
+        \-----/                |              |           |
+           ^                   |              |           |
+           |___________________x______________|           |
+                               |                          |
+                               v                 ...      v 
+                             /------------------------------\
+                             |          state pins          |
+                             \______________________________/
 */
 
-class StableStateMachin {
+class StableStateMachine {
 
   extend_network( list_or_one ) {
     if( typeof( list_or_one ) === 'object' ) {
@@ -67,6 +69,8 @@ class StableStateMachin {
     this.state2index = {};
     this.next_id = 0
     this.state2index[start_state] = this.next_id++;
+    this.statenames = [];
+    this.statenames.push( start_state );
 
     for( var i = 0 ; i < edges.length ; i++ ) {
       var edge = edges[i];
@@ -74,16 +78,19 @@ class StableStateMachin {
       var src_state = edge[0];
       if( !this.state2index.hasOwnProperty( src_state ) ) {
         this.state2index[ src_state ] = this.next_id++;
+        this.statenames.push( src_state );
       }
 
       var dst_state = edge[2];
       if( !this.state2index.hasOwnProperty( dst_state ) ) {
         this.state2index[ dst_state ] = this.next_id++;
+        this.statenames.push( dst_state );
       }
     }
 
     this.valid = new OrGate( name + "_valid_trans" );
     {
+      this.valid.inputs.push( init_input );
       this.network.push( this.valid );
     }
 
@@ -192,9 +199,34 @@ class StableStateMachin {
       }
     }
 
+
+    this.name2smooth = {};
+    for( var i = 0 ; i < this.statenames.length; i++ ) {
+      var st = this.statenames[i];
+      var dec_org = new AndGate( name + "_s[" + st + "]" );
+      var state_index = this.state2index[ st ];
+      for( var b = 0 ; b < this.state_bit_width ; b++ ) {
+        if( state_index & (1<<b) ) {
+          dec_org.inputs.push( this.D_as[b].get_output_endpoint() );
+        } else {
+          dec_org.inputs.push( this.D_as[b].get_n_output_endpoint() );
+        }
+      }
+      this.network.push( dec_org );
+
+      var smooth = new Smooth( dec_org, dec_org.name );
+      this.name2smooth[ st ] = smooth.get_output_endpoint();
+      this.extend_network( smooth.network );
+    }
+
+
   }
 
   get_output_endpoints( ) {
     return this.D_as.map( (x) => x.get_output_endpoint() );
+  }
+
+  get_state_decoded_output_by_name( state_name ) {
+    return this.name2smooth[ state_name ];
   }
 }
