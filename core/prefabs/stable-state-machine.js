@@ -207,9 +207,9 @@ class StableStateMachine {
       var state_index = this.state2index[ st ];
       for( var b = 0 ; b < this.state_bit_width ; b++ ) {
         if( state_index & (1<<b) ) {
-          dec_org.inputs.push( this.D_as[b].get_output_endpoint() );
+          dec_org.inputs.push( this.D_bs[b].get_output_endpoint() );
         } else {
-          dec_org.inputs.push( this.D_as[b].get_n_output_endpoint() );
+          dec_org.inputs.push( this.D_bs[b].get_n_output_endpoint() );
         }
       }
       this.network.push( dec_org );
@@ -223,7 +223,7 @@ class StableStateMachine {
   }
 
   get_output_endpoints( ) {
-    return this.D_as.map( (x) => x.get_output_endpoint() );
+    return this.D_bs.map( (x) => x.get_output_endpoint() );
   }
 
   get_state_decoded_output_by_name( state_name ) {
