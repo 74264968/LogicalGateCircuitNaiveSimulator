@@ -48,8 +48,8 @@ class StableStateMachine {
       var edge = edges[i];
       var event = edge[1];
       if( typeof event === "string" ) {
-        if( event.split('').filter( (x) => x != '0' && x != '1' ).length > 0 ) {
-          throw `event ${event} from ${edge} is not a valid form, which should be a string of 0 or 1s or an integer.`;
+        if( event.split('').filter( (x) => x != '0' && x != '1' && x != 'x' ).length > 0 ) {
+          throw `event ${event} from ${edge} is not a valid form, which should be a string of 0/1/x or an integer.`;
         }
         if( event.length != event_inputs_from_lsb2msb.length ) {
           throw `event ${event} from ${edge} is not a valid value, which's length should be equal to event_inputs_from_lsb2msb.length.`;
@@ -160,10 +160,14 @@ class StableStateMachine {
       var trans = new AndGate( name + "_t_" + edge[0] + " " + edge[1] + "("+edge[0]+":"+edge[1]+")" );
       var state_index = this.state2index[edge[0]];
       var event = edge[1];
-      var numeric_event = event;
-      if( typeof numeric_event === "string" ) {
+      var stringify_event = event;
+      if( typeof stringify_event === "number" ) {
         // lsb to msb, reverse it
-        numeric_event = parseInt( numeric_event.split('').reverse().join(''), 2 );
+        stringify_event = '';
+        for( var b = 0 ; b < event_inputs_from_lsb2msb.length ; b++ )
+        {
+          stringify_event += (event & (1<<b)) >> b;
+        }
       }
       // state
       for( var b = 0 ; b < this.state_bit_width; b++ ) {
@@ -176,11 +180,12 @@ class StableStateMachine {
 
       // event
       for( var b = 0 ; b < event_inputs_from_lsb2msb.length ; b++ ) {
-        if( numeric_event & (1<<b) ) {
+        var what = stringify_event[b];
+        if( what === '1' ) {
           trans.inputs.push( event_inputs_from_lsb2msb[b] );
-        } else {
+        } else if ( what === '0' ) {
           trans.inputs.push( this.not_event_inputs[b] );
-        }
+        } /* else if( what === 'x' ) ... */ //this is not necessary
       }
 
       this.translations.push( trans );
