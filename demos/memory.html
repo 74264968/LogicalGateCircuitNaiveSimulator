@@ -9,6 +9,7 @@
   </style>
   <script language="javascript" src="/core/fundamental/gates.js"></script>
   <script language="javascript" src="/core/fundamental/simulating.js"></script>
+  <script language="javascript" src="/core/prefabs/stateless.js"></script>
   <script language="javascript" src="/core/prefabs/stateful.js"></script>
   <script language="javascript" src="/visualization/time-sequence.js"></script>
   <script language="javascript" src="/visualization/input-interfaces.js"></script>
@@ -41,6 +42,19 @@
       }
     }
 
+    var bus_addr_inputs = [];
+    for( var i = 0 ; i < ADDR_WIDTH ; i++ ) {
+      bus_addr_inputs.push( new Signal( 0, "bus_adr_bit" + i ) );
+    }
+
+    var bus_dec = new Decoder( ADDR_WIDTH, "bus_dec", 3 );
+    {
+      for( var i = 0 ; i < ADDR_WIDTH ; i++ ) {
+        bus_dec.get_input_endpoint_at( i ).connect_to( bus_addr_inputs[i] );
+      }
+    }
+    var bus = new Bus( bus_dec, 8, "bus" );
+
     var storages = [];
     for( var i = 0 ; i < RAM_COUNT ; i++ ) {
       var addr_start = i * RAM_CAPACITY;
@@ -48,6 +62,9 @@
       var s = new Storage( enable, decoder, addr_start, capacity, "store[" + i + "]", init );
       for( var j = 0 ; j < 8 ; j++ ) {
         s.get_input_endpoint_at( j ).connect_to( new_value_inputs[j] );
+      }
+      for( var a = addr_start ; a < addr_start + capacity ; a++ ) {
+        bus.append( a, s.get_output_endpoints_at( a ) );
       }
       storages.push( s );
     }
@@ -60,11 +77,15 @@
     for( var i = 0 ; i < storages.length ; i++ ) {
       sigs = sigs.concat( storages[i].network );
     }
+    sigs = sigs.concat( bus_dec.network );
+    sigs = sigs.concat( bus.network );
 
     var seqs = [];
     seqs = seqs.concat( [clk, enable] );
     seqs = seqs.concat( addr_inputs );
     seqs = seqs.concat( new_value_inputs );
+    seqs = seqs.concat( decoder.outputs );
+    seqs = seqs.concat( bus_dec.outputs );
 
     var simulator = new Simulator( sigs, 0 );
     var loop = new MainLoop( simulator, 1, 50 );
@@ -74,7 +95,9 @@
     var value = new InputDigits( new_value_inputs, "inputPanel", "value: ");
     var ini = new InputSwitch( init, "inputPanel", "active", "inactive", 0 );
     var e = new InputSwitch( enable, "inputPanel", "active", "inactive", 0 );
+    new InputDigits( bus_addr_inputs, "inputPanel", "bus address: " );
 
+    loop.register_monitor( new DecimalDisplay( bus.get_output_endpoints(), false, "outputPanel", "bus" ) );
 
     for( var i = 0 ; i < storages.length ; i++ ) {
       var s = storages[i];
@@ -83,6 +106,8 @@
         loop.register_monitor( tmp );
       }
     }
+
+
     var tm = new TimeSequenceMonitor( seqs, "timeseq", 768 );
     loop.register_monitor( tm );
 

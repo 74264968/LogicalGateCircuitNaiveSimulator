@@ -30,6 +30,7 @@ function GET_COMPONENT_STAT() {
 }
 const COMPONENT_STAT = {};
 
+
 class Component {
   constructor( type, inputs, type_name, name ) {
     this.type = type;
@@ -89,6 +90,13 @@ class Component {
     else {
       this.signal_determined.push( [tick, sig] );
     }
+  }
+
+  get_last_signal( ) {
+    if( this.signal_determined.length > 0 ) {
+      return this.signal_determined[this.signal_determined.length-1][1];
+    }
+    return 0;
   }
 
 
@@ -238,9 +246,6 @@ class NOrGate extends Component {
   }
 }
 
-
-
-
 class AndGate extends Component {
   constructor( name ) {
     super( S_COMPLEX, [], "AND_GATE", name );
@@ -265,3 +270,22 @@ class AndGate extends Component {
   }
 }
 
+class TriStateGate extends Component {
+  constructor( control, data, name ) {
+    super( S_COMPLEX, [], "TS_GATE", name );
+    this.control = control;
+    this.data = data;
+  }
+
+  peek( tick ) {
+    if( tick < 0 ) return 0;
+    var sig = this.get_determined_signal( tick );
+    if( sig >= 0 ) return sig;
+
+    var sig = 0;
+    if( this.control.peek( tick - 1 ) ) sig = this.data.peek( tick - 1 );
+
+    this.determine_signal( tick, sig );
+    return sig;
+  }
+}

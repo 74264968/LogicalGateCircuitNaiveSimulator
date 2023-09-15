@@ -65,3 +65,44 @@ class Smooth {
     return this.output;
   }
 }
+
+class Bus { 
+  constructor( addr_decoder, data_width, prefix ) {
+    this.network = [];
+    this.data_width = data_width;
+    this.outputs = [];
+    this.occupied = {};
+    this.decoder = addr_decoder;
+    this.data_width = data_width;
+    this.name = prefix;
+    for( var i = 0 ; i < this.data_width; i++ ) {
+      var tmp = new OrGate( prefix + "_o." + i );
+      this.outputs.push( tmp );
+      this.network.push( tmp );
+    }
+  }
+
+  append( address, endpoints ) {
+    if( this.occupied.hasOwnProperty( address ) ) {
+      console.warn( `${this.name} address of ${address} has already bound to endpoints` );
+      return false;
+    }
+
+    if( endpoints.length != this.data_width ) {
+      console.warn( `${this.name} has different data width of ${this.data_width} from endpoints when binding address ${address}` );
+      return false;
+    }
+
+    for( var i = 0 ; i < this.data_width ; i++ ) {
+      var tri = new TriStateGate( this.decoder.get_output_endpoint_at( address ), endpoints[i], this.name + "_tr[" + address + "].i" );
+      this.network.push( tri );
+      this.outputs[i].inputs.push( tri );
+    }
+
+    return true;
+  }
+
+  get_output_endpoints( ) {
+    return this.outputs;
+  }
+}
