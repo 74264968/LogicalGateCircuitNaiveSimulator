@@ -200,6 +200,27 @@ class NotGate extends Component {
 
 }
 
+class XOrGate extends Component {
+  constructor( name, a, b ) {
+    super( S_COMPLEX, [], "XOR_GATE", name );
+    this.a = a;
+    this.b = b;
+  }
+
+  peek( tick ) {
+    if( tick < 0 ) return 0;
+    var sig = this.get_determined_signal( tick );
+    if( sig >= 0 ) return sig;
+
+    var sig = 1;
+    if( this.a.peek( tick - 1 ) == this.b.peek( tick - 1 ) ) sig = 0;
+
+    this.determine_signal( tick, sig );
+    return sig;
+  }
+
+}
+
 class OrGate extends Component {
   constructor( name ) {
     super( S_COMPLEX, [], "OR_GATE", name );
