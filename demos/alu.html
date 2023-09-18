@@ -20,14 +20,27 @@
   <script language="javascript" src="/scaffold/helpers.js"></script>
   <script language="javascript">
   function Onload( ) {
+    const WIDTH = 8;
     var clk = new Clock( 1, 50 );
     var sigs = [];
-    var simulator = new Simulator( sigs, 0 );
+    var sims = [];
+    var simulator = new Simulator( sims, 0 );
     var tm = new TimeSequenceMonitor( sigs, "timeseq", 768 );
     var screen = new PixelScreen( sigs, "screen", 64, 64, 8 );
-    var loop = new MainLoop( simulator, 1, 1000 );
+    var loop = new MainLoop( simulator, 1, 100 );
     loop.register_monitor( tm );
     loop.register_monitor( screen );
+
+    var opr_a = CreateInputDigits( WIDTH, "digitPanel", "opr_a", simulator, loop );
+    var opr_b = CreateInputDigits( WIDTH, "digitPanel", "opr_b", simulator, loop );
+    var inc_a = new Incrementer( opr_a, "inc(a)" );
+    Add2Simulator( simulator, inc_a.network );
+    sigs.push( inc_a.get_carry_endpoint() );
+    loop.register_monitor( new DecimalDisplay( inc_a.get_output_endpoints(), false, "outputPanel", "inc(a)" ) );
+    loop.register_monitor( new DecimalDisplay( inc_a.get_output_endpoints(), true, "outputPanel", "signed inc(a)" ) );
+    loop.register_monitor( new DecimalDisplay( inc_a.get_carry_endpoint(), false, "outputPanel", "inc(a).carry" ) );
+
+
     function update( )
     {
       loop.update();
@@ -51,6 +64,7 @@
   </div>
   <div id="signalPanel" style="padding: 20px"></div>
   <div id="digitPanel" style="padding: 20px"></div>
+  <div id="outputPanel" style="padding: 20px"></div>
   <div>
   <canvas id="screen"></canvas>
   </div>
