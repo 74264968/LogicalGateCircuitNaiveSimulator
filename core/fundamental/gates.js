@@ -212,8 +212,12 @@ class XOrGate extends Component {
     var sig = this.get_determined_signal( tick );
     if( sig >= 0 ) return sig;
 
+    //try {
     var sig = 1;
     if( this.a.peek( tick - 1 ) == this.b.peek( tick - 1 ) ) sig = 0;
+    /*} catch {
+      console.warn( this.name + " has error", this.a, this.b );
+    }*/
 
     this.determine_signal( tick, sig );
     return sig;
