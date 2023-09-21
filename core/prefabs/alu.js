@@ -55,9 +55,13 @@ class Adder {
     this.outputs = [];
     this.carrys = [];
 
-    for( var i = 0 ; i < a_from_lsb2msb.length && i < b_from_lsb2msb.length ; i++ ) {
+    for( var i = 0 ; i < a_from_lsb2msb.length || i < b_from_lsb2msb.length ; i++ ) {
+      var aa = SIG_ZERO;
+      var bb = SIG_ZERO;
+      if( i < a_from_lsb2msb.length ) aa = a_from_lsb2msb[i];
+      if( i < b_from_lsb2msb.length ) bb = b_from_lsb2msb[i];
       var o;
-      var xor_ab = new XOrGate( prefix + "_xor_ab_" + i, a_from_lsb2msb[i], b_from_lsb2msb[i] );
+      var xor_ab = new XOrGate( prefix + "_xor_ab_" + i, aa, bb );
       if( i > 0 ) {
         o = new XOrGate( prefix + "_o" + i, xor_ab, this.carrys[i-1] );
         this.network.push( xor_ab );
@@ -70,18 +74,18 @@ class Adder {
       var c;
       var and_ab = new AndGate( prefix + "_and_ab_" + i );
       {
-        and_ab.inputs.push( a_from_lsb2msb[i] );
-        and_ab.inputs.push( b_from_lsb2msb[i] );
+        and_ab.inputs.push( aa );
+        and_ab.inputs.push( bb );
       }
       if( i > 0 ) {
         var and_ac = new AndGate( prefix + "_and_ab_" + i);
         {
-          and_ac.inputs.push( a_from_lsb2msb[i] );
+          and_ac.inputs.push( aa );
           and_ac.inputs.push( this.carrys[i-1] );
         }
         var and_bc = new AndGate( prefix + "_and_bc_" + i);
         {
-          and_bc.inputs.push( b_from_lsb2msb[i] );
+          and_bc.inputs.push( bb );
           and_bc.inputs.push( this.carrys[i-1] );
         }
         c = new OrGate( prefix + "_c" + i );
@@ -135,7 +139,7 @@ class Multiplier {
 
       // row + intermediates[i_a-1] => intermediates[i_a]
       if( i_a == 0 ) {
-        row.push( new Signal( 0 ) );
+        row.push( SIG_ZERO );
         this.intermediates.push( row );
       } else {
         this.intermediates.push( [] );
@@ -210,5 +214,84 @@ class Multiplier {
 
   get_output_endpoints() {
     return this.outputs;
+  }
+}
+
+/*
+  a   0 0 0 0 1 1 1 1
+  b   0 0 1 1 0 0 1 1
+  bo  0 1 0 1 0 1 0 1
+---------------------
+  out 0 1 1 0 1 0 0 1 
+  nbo 0 1 1 1 0 0 0 1
+
+  out = a xor b xor bo
+  nbo = ((not a) and (b or bo)) or (b and bo)
+      = (not a and b) or (not a and bo) or (b and bo)
+*/
+class Subtractor {
+  constructor( a_from_lsb2msb, b_from_lsb2msb, prefix ) {
+    this.network = [];
+    this.outputs = [];
+    this.borrows = [];
+
+    for( var i = 0 ; i < a_from_lsb2msb.length || i < b_from_lsb2msb.length ; i++ ) {
+      // slower but less code
+      var aa = SIG_ZERO;
+      var bb = SIG_ZERO;
+      var bo = SIG_ZERO;
+      if( i < a_from_lsb2msb.length ) aa = a_from_lsb2msb[i];
+      if( i < b_from_lsb2msb.length ) bb = b_from_lsb2msb[i];
+      if( i > 0 ) bo = this.borrows[i-1];
+
+      
+      var xor_ab = new XOrGate( prefix + "_xor_ab." + i, aa, bb );
+      var o = new XOrGate( prefix + "_o" + i, xor_ab, bo );
+      this.outputs.push( o );
+      this.network.push( xor_ab );
+      this.network.push( o );
+
+      var nbo = new OrGate( prefix + "_bo" + i );
+      {
+        var not_a = new NotGate( prefix + "_not_a" + i, aa );
+        this.network.push( not_a );
+        var and_not_a_b = new AndGate( prefix + "_and_not_a_b" + i );
+        {
+          and_not_a_b.inputs.push( not_a );
+          and_not_a_b.inputs.push( bb );
+        }
+        this.network.push( and_not_a_b );
+
+        var and_not_a_bo = new AndGate( prefix + "_and_not_a_bo" + i );
+        {
+          and_not_a_bo.inputs.push( not_a );
+          and_not_a_bo.inputs.push( bo );
+        }
+        this.network.push( and_not_a_bo );
+
+        var and_b_bo = new AndGate( prefix + "_and_b_bo" + i );
+        {
+          and_b_bo.inputs.push( bb );
+          and_b_bo.inputs.push( bo );
+        }
+        this.network.push( and_b_bo );
+
+        nbo.inputs.push( and_not_a_b );
+        nbo.inputs.push( and_not_a_bo );
+        nbo.inputs.push( and_b_bo );
+
+      }
+      this.borrows.push( nbo );
+      this.network.push( nbo );
+
+    }
+  }
+
+  get_output_endpoints() {
+    return this.outputs;
+  }
+
+  get_borrow_endpoint() {
+    return this.borrows[this.borrows.length-1];
   }
 }

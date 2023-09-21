@@ -314,3 +314,6 @@ class TriStateGate extends Component {
     return sig;
   }
 }
+
+const SIG_ZERO = new Signal( 0, "sig_zero" );
+const SIG_ONE = new Signal( 1, "sig_one" );

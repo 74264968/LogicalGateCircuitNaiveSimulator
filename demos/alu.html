@@ -21,24 +21,30 @@
   <script language="javascript">
   function Onload( ) {
     const WIDTH = 16;
-    var clk = new Clock( 1, 50 );
+    var clk = new Clock( 1, 150 );
     var sigs = [];
     var sims = [];
     var simulator = new Simulator( sims, 0 );
     var tm = new TimeSequenceMonitor( sigs, "timeseq", 768 );
     var screen = new PixelScreen( sigs, "screen", 64, 64, 8 );
-    var loop = new MainLoop( simulator, 1, 100 );
+    var loop = new MainLoop( simulator, 1, 10 );
     loop.register_monitor( tm );
     loop.register_monitor( screen );
 
-    var opr_a = CreateInputDigits( WIDTH, "digitPanel", "opr_a", simulator, loop );
+    var opr_a = CreateInputDigits( WIDTH+WIDTH/2, "digitPanel", "opr_a", simulator, loop );
     var opr_b = CreateInputDigits( WIDTH, "digitPanel", "opr_b", simulator, loop );
     var inc_a = new Incrementer( opr_a, "inc(a)" );
     var add_ab = new Adder( opr_a, opr_b, "a+b" );
     var mul_ab = new Multiplier( opr_a, opr_b, "a*b" );
+    var sub_ab = new Subtractor( opr_a, opr_b, "a-b" );
+    var sub_ba = new Subtractor( opr_b, opr_a, "b-a" );
+    var add_sub_ab_sub_ba = new Adder( sub_ab, sub_ba, "a-b+b-a" );
     Add2Simulator( simulator, inc_a.network );
     Add2Simulator( simulator, add_ab.network );
     Add2Simulator( simulator, mul_ab.network );
+    Add2Simulator( simulator, sub_ab.network );
+    Add2Simulator( simulator, sub_ba.network );
+    Add2Simulator( simulator, add_sub_ab_sub_ba.network );
     sigs.push( inc_a.get_carry_endpoint() );
     loop.register_monitor( new DecimalDisplay( inc_a.get_output_endpoints(), false, "outputPanel", "inc(a)" ) );
     loop.register_monitor( new DecimalDisplay( inc_a.get_output_endpoints(), true, "outputPanel", "signed inc(a)" ) );
@@ -47,6 +53,8 @@
     loop.register_monitor( new DecimalDisplay( add_ab.get_output_endpoints(), false, "outputPanel", "a+b" ) );
     loop.register_monitor( new DecimalDisplay( [add_ab.get_carry_endpoint()], false, "outputPanel", "(a+b).carry" ) );
     loop.register_monitor( new DecimalDisplay( mul_ab.get_output_endpoints(), false, "outputPanel", "a*b" ) );
+    loop.register_monitor( new DecimalDisplay( sub_ab.get_output_endpoints(), true, "outputPanel", "a-b" ) );
+    loop.register_monitor( new DecimalDisplay( sub_ba.get_output_endpoints(), true, "outputPanel", "b-a" ) );
     loop.register_monitor( new Tracer( opr_a, "tracing", "a" ) );
     loop.register_monitor( new Tracer( opr_b, "tracing", "b" ) );
     loop.register_monitor( new Tracer( add_ab.get_output_endpoints(), "tracing", "a+b" ) );
