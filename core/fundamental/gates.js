@@ -225,6 +225,33 @@ class XOrGate extends Component {
 
 }
 
+class XAndGate extends Component {
+  constructor( name, a, b ) {
+    super( S_COMPLEX, [], "XAND_GATE", name );
+    this.a = a;
+    this.b = b;
+  }
+
+  peek( tick ) {
+    if( tick < 0 ) return 0;
+    var sig = this.get_determined_signal( tick );
+    if( sig >= 0 ) return sig;
+
+    //try {
+    var sig = 0;
+    if( this.a.peek( tick - 1 ) == this.b.peek( tick - 1 ) ) sig = 1;
+    /*} catch {
+      console.warn( this.name + " has error", this.a, this.b );
+    }*/
+
+    this.determine_signal( tick, sig );
+    return sig;
+  }
+
+}
+
+
+
 class OrGate extends Component {
   constructor( name ) {
     super( S_COMPLEX, [], "OR_GATE", name );

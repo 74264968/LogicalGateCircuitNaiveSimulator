@@ -61,7 +61,7 @@ class Adder {
       if( i < a_from_lsb2msb.length ) aa = a_from_lsb2msb[i];
       if( i < b_from_lsb2msb.length ) bb = b_from_lsb2msb[i];
       var o;
-      var xor_ab = new XOrGate( prefix + "_xor_ab_" + i, aa, bb );
+      var xor_ab = new XOrGate( prefix + "_xor_ab." + i, aa, bb );
       if( i > 0 ) {
         o = new XOrGate( prefix + "_o" + i, xor_ab, this.carrys[i-1] );
         this.network.push( xor_ab );
@@ -295,3 +295,89 @@ class Subtractor {
     return this.borrows[this.borrows.length-1];
   }
 }
+
+/*
+  a   0 0 1 1
+  b   0 1 0 1
+----------------------
+  out r 0 1 r
+
+  out[n] = ((a xand b) and r[n-1]) or (a and (not b))
+  r[-1] = 0
+*/
+
+class GreaterComparator {
+  constructor( a_from_lsb2msb, b_from_lsb2msb, prefix ) {
+    this.network = [];
+    this.rs = [];
+    for( var i = 0 ; i < a_from_lsb2msb.length || i < b_from_lsb2msb.length ; i++ ) {
+      var aa = SIG_ZERO;
+      if( i < a_from_lsb2msb.length ) aa = a_from_lsb2msb[i];
+      var bb = SIG_ZERO;
+      if( i < b_from_lsb2msb.length ) bb = b_from_lsb2msb[i];
+      var prev_r = SIG_ZERO;
+      if( i > 0 ) prev_r = this.rs[i-1];
+
+      var rr = new OrGate( prefix + "_r" + i );
+      {
+        var and_xab_r = new AndGate( prefix + "_and_xab_r_" + i );
+        {
+          var xand_ab = new XAndGate( prefix + "_xand_ab." + i, aa, bb );
+          this.network.push( xand_ab );
+          and_xab_r.inputs.push( xand_ab );
+          and_xab_r.inputs.push( prev_r );
+          this.network.push( and_xab_r );
+        }
+        
+        var and_a_not_b = new AndGate( prefix + "_and_a_not_b_" + i );
+        {
+          var not_b = new NotGate( prefix + "_not_b" + i, bb );
+          this.network.push( not_b );
+          and_a_not_b.inputs.push( aa );
+          and_a_not_b.inputs.push( not_b );
+          this.network.push( and_a_not_b );
+        }
+
+        rr.inputs.push( and_xab_r );
+        rr.inputs.push( and_a_not_b );
+        this.rs.push( rr );
+        this.network.push( rr );
+      }
+    }
+    //console.log( 'rs length', this.rs.length );
+  }
+
+  get_output_endpoint() {
+    return this.rs[this.rs.length-1];
+  }
+}
+
+class LessComparator extends GreaterComparator {
+  constructor( a_from_lsb2msb, b_from_lsb2msb, prefix ) {
+    super( b_from_lsb2msb, a_from_lsb2msb, prefix );
+  }
+}
+
+class EqualComparator {
+  constructor( a_from_lsb2msb, b_from_lsb2msb, prefix ) {
+    this.network = [];
+    this.output = new AndGate( prefix + "_o" );
+    for( var i = 0 ; i < a_from_lsb2msb.length || i < b_from_lsb2msb.length ; i++ ) {
+      var aa = SIG_ZERO;
+      if( i < a_from_lsb2msb.length ) aa = a_from_lsb2msb[i];
+      var bb = SIG_ZERO;
+      if( i < b_from_lsb2msb.length ) bb = b_from_lsb2msb[i];
+
+      var xand_ab = new XAndGate( prefix + "_xand_ab." + i, aa, bb );
+      this.output.inputs.push( xand_ab );
+      this.network.push( xand_ab );
+    }
+    this.network.push( this.output );
+  }
+
+  get_output_endpoint() {
+    return this.output;
+  }
+}
+
+

@@ -39,12 +39,18 @@
     var sub_ab = new Subtractor( opr_a, opr_b, "a-b" );
     var sub_ba = new Subtractor( opr_b, opr_a, "b-a" );
     var add_sub_ab_sub_ba = new Adder( sub_ab, sub_ba, "a-b+b-a" );
+    var g_ab = new GreaterComparator( opr_a, opr_b, "a>b" );
+    var l_ab = new LessComparator( opr_a, opr_b, "a<b" );
+    var eq_ab = new EqualComparator( opr_a, opr_b, "a==b" );
     Add2Simulator( simulator, inc_a.network );
     Add2Simulator( simulator, add_ab.network );
     Add2Simulator( simulator, mul_ab.network );
     Add2Simulator( simulator, sub_ab.network );
     Add2Simulator( simulator, sub_ba.network );
     Add2Simulator( simulator, add_sub_ab_sub_ba.network );
+    Add2Simulator( simulator, g_ab.network );
+    Add2Simulator( simulator, l_ab.network );
+    Add2Simulator( simulator, eq_ab.network );
     sigs.push( inc_a.get_carry_endpoint() );
     loop.register_monitor( new DecimalDisplay( inc_a.get_output_endpoints(), false, "outputPanel", "inc(a)" ) );
     loop.register_monitor( new DecimalDisplay( inc_a.get_output_endpoints(), true, "outputPanel", "signed inc(a)" ) );
@@ -55,10 +61,19 @@
     loop.register_monitor( new DecimalDisplay( mul_ab.get_output_endpoints(), false, "outputPanel", "a*b" ) );
     loop.register_monitor( new DecimalDisplay( sub_ab.get_output_endpoints(), true, "outputPanel", "a-b" ) );
     loop.register_monitor( new DecimalDisplay( sub_ba.get_output_endpoints(), true, "outputPanel", "b-a" ) );
-    loop.register_monitor( new Tracer( opr_a, "tracing", "a" ) );
-    loop.register_monitor( new Tracer( opr_b, "tracing", "b" ) );
-    loop.register_monitor( new Tracer( add_ab.get_output_endpoints(), "tracing", "a+b" ) );
-    loop.register_monitor( new Tracer( mul_ab.get_output_endpoints(), "tracing", "a*b" ) );
+    loop.register_monitor( new DecimalDisplay( [g_ab.get_output_endpoint()], false, "outputPanel", "a&gt;b" ) );
+    loop.register_monitor( new DecimalDisplay( [l_ab.get_output_endpoint()], false, "outputPanel", "a&lt;b" ) );
+    loop.register_monitor( new DecimalDisplay( [eq_ab.get_output_endpoint()], false, "outputPanel", "a==b" ) );
+    //loop.register_monitor( new DecimalDisplay( g_ab.rs, false, "outputPanel", "a>b" ) );
+    /*
+    for( var i = 0; i < g_ab.network.length ; i++ ) {
+      sigs.push( g_ab.network[i] );
+    }
+    */
+    //loop.register_monitor( new Tracer( opr_a, "tracing", "a" ) );
+    //loop.register_monitor( new Tracer( opr_b, "tracing", "b" ) );
+    //loop.register_monitor( new Tracer( add_ab.get_output_endpoints(), "tracing", "a+b" ) );
+    //loop.register_monitor( new Tracer( mul_ab.get_output_endpoints(), "tracing", "a*b" ) );
 
 
     function update( )
