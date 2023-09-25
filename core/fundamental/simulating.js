@@ -16,6 +16,8 @@ class Simulator {
 
 }
 
+
+
 class MainLoop {
   constructor( simulator, tick_each_frame, frame_in_ms ) {
     this.simulator = simulator;
@@ -24,6 +26,7 @@ class MainLoop {
     this.next_tick = 0;
     this.monitors = [];
     this.running = 0;
+    this.other_simulators = [];
   }
 
   start() {
@@ -47,6 +50,10 @@ class MainLoop {
     this.monitors.push( monitor );
   }
 
+  add_simulator( simulator, slow_down_rate ) {
+    //TODO
+  }
+
   update() {
     if( this.running > 0 ) {
       this.running--;
@@ -56,6 +63,20 @@ class MainLoop {
         this.monitors[i].update( this.next_tick );
       }
     }
+  }
+
+}
+
+/*
+connect two network
+*/
+class Bridge {
+  constructor( pairs ) {
+    this.pairs = pairs;
+  }
+
+  update( tick ) {
+    
   }
 
 }

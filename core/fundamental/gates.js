@@ -107,6 +107,11 @@ class Signal extends Component
     super( S_SIMPLE, [], "SIGNAL", name );
     this.value = value;
     this.attached = null;
+    this.is_const = false;
+  }
+
+  set_const( ) {
+    this.is_const = true;
   }
 
   set_value( n_value ) {
@@ -343,4 +348,6 @@ class TriStateGate extends Component {
 }
 
 const SIG_ZERO = new Signal( 0, "sig_zero" );
+SIG_ZERO.set_const();
 const SIG_ONE = new Signal( 1, "sig_one" );
+SIG_ONE.set_const();

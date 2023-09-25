@@ -303,11 +303,11 @@ class Subtractor {
   out r 0 1 r
 
   out[n] = ((a xand b) and r[n-1]) or (a and (not b))
-  r[-1] = 0
+  r[-1] = 0 if not equal else 1
 */
 
 class GreaterComparator {
-  constructor( a_from_lsb2msb, b_from_lsb2msb, prefix ) {
+  constructor( a_from_lsb2msb, b_from_lsb2msb, prefix, with_equal ) {
     this.network = [];
     this.rs = [];
     for( var i = 0 ; i < a_from_lsb2msb.length || i < b_from_lsb2msb.length ; i++ ) {
@@ -315,7 +315,7 @@ class GreaterComparator {
       if( i < a_from_lsb2msb.length ) aa = a_from_lsb2msb[i];
       var bb = SIG_ZERO;
       if( i < b_from_lsb2msb.length ) bb = b_from_lsb2msb[i];
-      var prev_r = SIG_ZERO;
+      var prev_r = with_equal ? SIG_ONE : SIG_ZERO;
       if( i > 0 ) prev_r = this.rs[i-1];
 
       var rr = new OrGate( prefix + "_r" + i );
@@ -380,4 +380,69 @@ class EqualComparator {
   }
 }
 
+class Divider { 
+  constructor( dividend_from_lsb2msb, divider_from_lsb2msb, prefix ) {
+    const W = dividend_from_lsb2msb.length;
+    /*
+      n: W-1 ~ 0
+      remain[W] = dividend_from_lsb2msb
+      Bit[n] = remain[n+1] >= (divider_from_lsb2msb << n) ? 1 : 0
+      remain[n] = remain[n+1] - Bit[n] * (divider_from_lsb2msb << n)
+    */
 
+    this.remains = [];
+    this.outputs = [];
+    this.network = [];
+
+
+    this.divider_from_lsb2msb_shift_Wsub1 = [];
+    {
+      for( var i = 0 ; i < W - 1 ; i++ ) {
+        this.divider_from_lsb2msb_shift_Wsub1.push( SIG_ZERO );
+      }
+      this.divider_from_lsb2msb_shift_Wsub1 = this.divider_from_lsb2msb_shift_Wsub1.concat( divider_from_lsb2msb );
+    }
+
+    for( var i = 0 ; i < W ; i++ )
+    {
+      this.remains.push( null ); //placeholder
+      this.outputs.push( null );
+    }
+    this.remains.push( dividend_from_lsb2msb );
+
+    for( var n = W - 1 ; n >= 0 ; n-- ) {
+      var div_lshift_n = this.divider_from_lsb2msb_shift_Wsub1.slice( W - 1 - n );
+      var greater = new GreaterComparator( this.remains[n+1], div_lshift_n, prefix + "_geeq_div<<" + n, true );
+      /*
+      var equal = new EqualComparator( this.remains[n+1], div_lshift_n, prefix + "_eq_div<<" + n );
+      var comp = new OrGate( prefix + "_o" + n );
+      {
+        comp.inputs.push( greater.get_output_endpoint() );
+        comp.inputs.push( equal.get_output_endpoint() );
+      }
+      */
+      this.network = this.network.concat( greater.network );
+      //this.network = this.network.concat( equal.network );
+      var comp = greater.get_output_endpoint();
+      this.network.push( comp );
+      this.outputs[n] = comp;
+
+      var mul = new Multiplier( [comp], div_lshift_n );
+      this.network = this.network.concat( mul.network );
+
+      var subtractor = new Subtractor( this.remains[n+1], mul.get_output_endpoints(), prefix + "_remain_" + n );
+      this.network = this.network.concat( subtractor.network );
+      this.remains[n] = subtractor.get_output_endpoints();
+    }
+
+  }
+
+  get_output_endpoints() {
+    return this.outputs;
+  }
+
+  get_remain_output_endpoints() {
+    return this.remains[0];
+  }
+
+}

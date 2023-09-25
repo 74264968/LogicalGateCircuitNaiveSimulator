@@ -20,7 +20,7 @@
   <script language="javascript" src="/scaffold/helpers.js"></script>
   <script language="javascript">
   function Onload( ) {
-    const WIDTH = 16;
+    const WIDTH = 8;
     var clk = new Clock( 1, 150 );
     var sigs = [];
     var sims = [];
@@ -31,13 +31,14 @@
     loop.register_monitor( tm );
     loop.register_monitor( screen );
 
-    var opr_a = CreateInputDigits( WIDTH+WIDTH/2, "digitPanel", "opr_a", simulator, loop );
+    var opr_a = CreateInputDigits( WIDTH, "digitPanel", "opr_a", simulator, loop );
     var opr_b = CreateInputDigits( WIDTH, "digitPanel", "opr_b", simulator, loop );
     var inc_a = new Incrementer( opr_a, "inc(a)" );
     var add_ab = new Adder( opr_a, opr_b, "a+b" );
     var mul_ab = new Multiplier( opr_a, opr_b, "a*b" );
     var sub_ab = new Subtractor( opr_a, opr_b, "a-b" );
     var sub_ba = new Subtractor( opr_b, opr_a, "b-a" );
+    var div_ab = new Divider( opr_a, opr_b, "a/b" );
     var add_sub_ab_sub_ba = new Adder( sub_ab, sub_ba, "a-b+b-a" );
     var g_ab = new GreaterComparator( opr_a, opr_b, "a>b" );
     var l_ab = new LessComparator( opr_a, opr_b, "a<b" );
@@ -51,6 +52,7 @@
     Add2Simulator( simulator, g_ab.network );
     Add2Simulator( simulator, l_ab.network );
     Add2Simulator( simulator, eq_ab.network );
+    Add2Simulator( simulator, div_ab.network );
     sigs.push( inc_a.get_carry_endpoint() );
     loop.register_monitor( new DecimalDisplay( inc_a.get_output_endpoints(), false, "outputPanel", "inc(a)" ) );
     loop.register_monitor( new DecimalDisplay( inc_a.get_output_endpoints(), true, "outputPanel", "signed inc(a)" ) );
@@ -64,6 +66,8 @@
     loop.register_monitor( new DecimalDisplay( [g_ab.get_output_endpoint()], false, "outputPanel", "a&gt;b" ) );
     loop.register_monitor( new DecimalDisplay( [l_ab.get_output_endpoint()], false, "outputPanel", "a&lt;b" ) );
     loop.register_monitor( new DecimalDisplay( [eq_ab.get_output_endpoint()], false, "outputPanel", "a==b" ) );
+    loop.register_monitor( new DecimalDisplay( div_ab.get_output_endpoints(), false, "outputPanel", "a/b" ) );
+    loop.register_monitor( new DecimalDisplay( div_ab.get_remain_output_endpoints(), false, "outputPanel", "a%b" ) );
     //loop.register_monitor( new DecimalDisplay( g_ab.rs, false, "outputPanel", "a>b" ) );
     /*
     for( var i = 0; i < g_ab.network.length ; i++ ) {

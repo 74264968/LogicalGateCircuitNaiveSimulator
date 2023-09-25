@@ -103,7 +103,7 @@ class Decoder {
 
     for( var addr = 0 ; addr < addr_count ; addr++ ) {
       var tmp = addr;
-      var out = new AndGate( prefix + "out_" + addr );
+      var out = new AndGate( prefix + "_out_" + addr );
       for( var d = 0 ; d*k < input_width ; d++ ) {
         var remain = tmp % pow_k;
         out.inputs.push( this.sub_decoders[d][remain] );
