@@ -3,6 +3,14 @@ function Add2Simulator( simulator, network ) {
     simulator.network.push( network[i] );
   }
 }
+
+function CreateInputSwitch( init_value, panel, name, simulator ) {
+  var sig = new Signal( init_value, name );
+  new InputSwitch( sig, panel, "active", "inactive", init_value );
+  simulator.network.push( sig );
+  return sig;
+}
+
 function CreateInputDigits( width, panel, name, simulator, loop ) {
   var sigs = [];
   for( var i = 0 ; i < width ; i++ ) {

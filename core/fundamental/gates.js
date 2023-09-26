@@ -309,6 +309,7 @@ class AndGate extends Component {
   }
 
   peek( tick ) {
+    //try {
     if( tick < 0 ) return 0;
     var sig = this.get_determined_signal( tick );
     if( sig >= 0 ) return sig;
@@ -324,6 +325,11 @@ class AndGate extends Component {
 
     this.determine_signal( tick, sig );
     return sig;
+    /*
+    } catch { 
+      console.warn( 'error at ' + this.name );
+    }
+    */
   }
 }
 

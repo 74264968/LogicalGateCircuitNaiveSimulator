@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    button {border:1px solid #338; padding:4px;}
+    button:hover {border:1px solid #996;cursor:pointer}
+    .active {background-color: #33aa44; color:#eef}
+    .inactive {background-color: none;}
+  </style>
+  <script language="javascript" src="/core/fundamental/gates.js"></script>
+  <script language="javascript" src="/core/fundamental/simulating.js"></script>
+  <script language="javascript" src="/core/prefabs/stateful.js"></script>
+  <script language="javascript" src="/core/prefabs/stateless.js"></script>
+  <script language="javascript" src="/core/prefabs/clock-driven-state-machine.js"></script>
+  <script language="javascript" src="/visualization/time-sequence.js"></script>
+  <script language="javascript" src="/visualization/input-interfaces.js"></script>
+  <script language="javascript" src="/visualization/screen.js"></script>
+  <script language="javascript" src="/visualization/dec-display.js"></script>
+  <script language="javascript" src="/visualization/tracer.js"></script>
+  <script language="javascript" src="/scaffold/helpers.js"></script>
+  <script language="javascript">
+  function Onload( ) {
+    var clk = new Clock( 1, 50 );
+    var sigs = [];
+    var to_mon = [clk];
+    var simulator = new Simulator( sigs, 0 );
+    var tm = new TimeSequenceMonitor( to_mon, "timeseq", 768 );
+    var screen = new PixelScreen( sigs, "screen", 64, 64, 8 );
+    var loop = new MainLoop( simulator, 1, 10 );
+    var reset = new CreateInputSwitch( 0, "signalPanel", "reset", simulator );
+    var switchs = [
+      new CreateInputSwitch( 0, 'signalPanel', 'stay', simulator ),
+      new CreateInputSwitch( 0, 'signalPanel', 'jump-2', simulator )
+    ];
+    var sm_abcd = new ClockDrivenStateMachine( 
+      clk, reset, 'a', [
+        ['a', '00', 'b'],
+        ['b', '00', 'c'],
+        ['c', '00', 'd'],
+        ['d', '00', 'a'],
+        ['a', '10', 'a'],
+        ['b', '10', 'b'],
+        ['c', '10', 'c'],
+        ['d', '10', 'd'],
+        ['a', 'x1', 'c'],
+        ['b', 'x1', 'd'],
+        ['c', 'x1', 'a'],
+        ['d', 'x1', 'b'],
+      ], switchs, 'abcd' );
+
+    Add2Simulator( simulator, sm_abcd.network );
+    to_mon.push( sm_abcd.ena );
+    to_mon.push( sm_abcd.enb );
+    to_mon.push( sm_abcd.boot_state );
+    to_mon.push( sm_abcd.get_output_endpoint_of_is_state('a') );
+    to_mon.push( sm_abcd.get_output_endpoint_of_is_state('b') );
+    to_mon.push( sm_abcd.get_output_endpoint_of_is_state('c') );
+    to_mon.push( sm_abcd.get_output_endpoint_of_is_state('d') );
+
+    var mem_ready = new Connector( null, 1, 'mem_ready' );
+    var cpu_wait_mem = new Connector( null, 1, 'cpu_wait_mem' );
+    const FETCH_INST = 'fetching-instruction';
+    const WAITING_MEM = 'waiting-mem';
+    const WORKING = 'working';
+    const READY = 'ready';
+    const READY2 = 'ready2';
+    const OP_S0 = 'OP0';
+    const OP_S1 = 'OP1';
+    var cpu_pipeline = new ClockDrivenStateMachine( clk, reset, FETCH_INST,
+    [
+      [FETCH_INST, '', WAITING_MEM],
+      [WAITING_MEM, '0', WAITING_MEM],
+      [WAITING_MEM, '1', WORKING],
+      [WORKING, '', FETCH_INST],
+    ], [mem_ready], 'cpu_pipeline' );
+
+    var mem_pipeline = new ClockDrivenStateMachine( clk, reset, READY,
+    [
+      [READY, '1', OP_S0],
+      [READY, '0', READY],
+      [OP_S0, '', OP_S1],
+      [OP_S1, '', READY2],
+      [READY2, '', READY],
+    ], [cpu_wait_mem], 'mem_pipeline' );
+
+    mem_ready.connect_to( mem_pipeline.get_output_endpoint_of_is_state( READY2 ) );
+    cpu_wait_mem.connect_to( cpu_pipeline.get_output_endpoint_of_is_state( WAITING_MEM ) );
+
+    Add2Simulator( simulator, [mem_ready, cpu_wait_mem] );
+    Add2Simulator( simulator, cpu_pipeline.network );
+    Add2Simulator( simulator, mem_pipeline.network );
+    
+    to_mon.push( mem_ready );
+    to_mon.push( cpu_pipeline.get_output_endpoint_of_is_state( FETCH_INST ) );
+    to_mon.push( cpu_pipeline.get_output_endpoint_of_is_state( WAITING_MEM ) );
+    to_mon.push( cpu_pipeline.get_output_endpoint_of_is_state( WORKING ) );
+
+    to_mon.push( mem_pipeline.get_output_endpoint_of_is_state( READY ) );
+    to_mon.push( mem_pipeline.get_output_endpoint_of_is_state( OP_S0 ) );
+    to_mon.push( mem_pipeline.get_output_endpoint_of_is_state( OP_S1 ) );
+    to_mon.push( mem_pipeline.get_output_endpoint_of_is_state( READY2 ) );
+
+    loop.register_monitor( tm );
+    loop.register_monitor( screen );
+    function update( )
+    {
+      loop.update();
+    }
+    setInterval( update, loop.frame_in_ms );
+    loop.start();
+
+    var btnResume = document.getElementById("btnResume");
+    btnResume.onclick = function() { loop.resume(); }
+
+    var btnStop = document.getElementById("btnStop");
+    btnStop.onclick = function() { loop.pause(); }
+
+  }
+  </script>
+</head>
+<body onload="javascript:Onload()">
+  <div>
+  <button id="btnResume">resume</button>
+  <button id="btnStop">stop</button>
+  </div>
+  <div id="signalPanel" style="padding: 20px"></div>
+  <div id="digitPanel" style="padding: 20px"></div>
+  <div>
+  <canvas id="screen"></canvas>
+  </div>
+  <div>
+  <canvas id="timeseq"></canvas>
+  </div>
+</body>
+</html>
