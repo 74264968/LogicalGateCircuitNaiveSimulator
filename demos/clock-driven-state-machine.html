@@ -51,7 +51,7 @@
     Add2Simulator( simulator, sm_abcd.network );
     to_mon.push( sm_abcd.ena );
     to_mon.push( sm_abcd.enb );
-    to_mon.push( sm_abcd.boot_state );
+    //to_mon.push( sm_abcd.boot_state );
     to_mon.push( sm_abcd.get_output_endpoint_of_is_state('a') );
     to_mon.push( sm_abcd.get_output_endpoint_of_is_state('b') );
     to_mon.push( sm_abcd.get_output_endpoint_of_is_state('c') );
@@ -66,8 +66,9 @@
     const READY2 = 'ready2';
     const OP_S0 = 'OP0';
     const OP_S1 = 'OP1';
-    var cpu_pipeline = new ClockDrivenStateMachine( clk, reset, FETCH_INST,
+    var cpu_pipeline = new ClockDrivenStateMachine( clk, reset, READY,
     [
+      [READY, '', FETCH_INST],
       [FETCH_INST, '', WAITING_MEM],
       [WAITING_MEM, '0', WAITING_MEM],
       [WAITING_MEM, '1', WORKING],
@@ -83,8 +84,8 @@
       [READY2, '', READY],
     ], [cpu_wait_mem], 'mem_pipeline' );
 
-    mem_ready.connect_to( mem_pipeline.get_output_endpoint_of_is_state( READY2 ) );
-    cpu_wait_mem.connect_to( cpu_pipeline.get_output_endpoint_of_is_state( WAITING_MEM ) );
+    mem_ready.connect_to( mem_pipeline.get_output_endpoint_as_event_of_state( READY2 ) );
+    cpu_wait_mem.connect_to( cpu_pipeline.get_output_endpoint_as_event_of_state( WAITING_MEM ) );
 
     Add2Simulator( simulator, [mem_ready, cpu_wait_mem] );
     Add2Simulator( simulator, cpu_pipeline.network );
