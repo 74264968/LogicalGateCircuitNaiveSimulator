@@ -20,7 +20,7 @@ class ClockDrivenStateMachine {
     this._create_funs_and_double_D( prefix, reset );
     this._make_not_events( prefix, events );
     this._make_is_states( prefix );
-    console.log( prefix, this.bit_width );
+    //console.log( prefix, this.bit_width );
 
     for( var i = 0 ; i < edges.length ; i++ ) {
       var src_state = edges[i][0];
