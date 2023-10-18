@@ -59,6 +59,17 @@
 
     var mem_ready = new Connector( null, 1, 'mem_ready' );
     var cpu_wait_mem = new Connector( null, 1, 'cpu_wait_mem' );
+
+    var value_a = [SIG_ONE, SIG_ONE];
+    var value_b = [SIG_ZERO, SIG_ZERO];
+    var multi_src = new MultiSource( [mem_ready, cpu_wait_mem], [value_a, value_b], 2, "multi");
+    Add2Simulator( simulator, value_a );
+    Add2Simulator( simulator, value_b );
+    Add2Simulator( simulator, multi_src.network );
+
+    loop.register_monitor( new DecimalDisplay( multi_src.get_output_endpoints(), false, "digitPanel", "multl" ) );
+
+
     const FETCH_INST = 'fetching-instruction';
     const WAITING_MEM = 'waiting-mem';
     const WORKING = 'working';
@@ -86,12 +97,14 @@
 
     mem_ready.connect_to( mem_pipeline.get_output_endpoint_as_event_of_state( READY2 ) );
     cpu_wait_mem.connect_to( cpu_pipeline.get_output_endpoint_as_event_of_state( WAITING_MEM ) );
+    console.log( cpu_pipeline.network );
 
     Add2Simulator( simulator, [mem_ready, cpu_wait_mem] );
     Add2Simulator( simulator, cpu_pipeline.network );
     Add2Simulator( simulator, mem_pipeline.network );
     
     to_mon.push( mem_ready );
+    to_mon.push( cpu_pipeline.get_output_endpoint_of_is_state( READY ) );
     to_mon.push( cpu_pipeline.get_output_endpoint_of_is_state( FETCH_INST ) );
     to_mon.push( cpu_pipeline.get_output_endpoint_of_is_state( WAITING_MEM ) );
     to_mon.push( cpu_pipeline.get_output_endpoint_of_is_state( WORKING ) );
