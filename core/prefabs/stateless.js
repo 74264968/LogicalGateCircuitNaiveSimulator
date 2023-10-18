@@ -66,6 +66,76 @@ class Smooth {
   }
 }
 
+/*
+  N = input_width / k
+  r = input_width % k
+  split to Nx k->2^k + 1x r->2^r decoders 
+  and combine the decoders output to final decoder
+*/
+class Decoder {
+  constructor( input_width, prefix, k ) {
+    if( !k ) k = 4;
+    var pow_k = 1<<k;
+    this.inputs = [];
+    this.not_inputs = [];
+    for( var i = 0 ; i < input_width ; i++ )
+    {
+      var comp = new Connector( null, 0, prefix + "_" + "pin_" + i );
+      var not_comp = new NotGate( prefix + "_" + "npin_" + i, comp );
+      this.inputs.push( comp );
+      this.not_inputs.push( not_comp );
+    }
+
+    var addr_count = (1<<input_width);
+    this.sub_decoders = [];
+    for( var d = 0 ; d < input_width ; d+= k ) {
+      var sub_decoder_outs = [];
+      for( var j = 0 ; j < pow_k && j < (1<<(input_width - d)); j++ ) {
+        var out = new AndGate( prefix + "_sub_" + (d/k) + "_" + j );
+        for( var b = 0 ; b < k ; b++ ) {
+          var mask = 1<<b;
+          var which = d+b;
+          if( which >= input_width ) break;
+          var what = (j&mask) ? this.inputs[which] : this.not_inputs[which];
+          out.inputs.push( what );
+        }
+        sub_decoder_outs.push( out );
+      }
+      this.sub_decoders.push( sub_decoder_outs );
+    }
+    //console.log( this.sub_decoders );
+
+    this.outputs = [];
+
+    for( var addr = 0 ; addr < addr_count ; addr++ ) {
+      var tmp = addr;
+      var out = new AndGate( prefix + "_out_" + addr );
+      for( var d = 0 ; d*k < input_width ; d++ ) {
+        var remain = tmp % pow_k;
+        out.inputs.push( this.sub_decoders[d][remain] );
+        tmp >>= k;
+      }
+      this.outputs.push( out );
+    }
+
+    this.network = [];
+    this.network = this.network.concat( this.outputs );
+    this.network = this.network.concat( this.inputs );
+    this.network = this.network.concat( this.not_inputs );
+    this.network = this.network.concat( this.sub_decoders.flatMap( (x) => x ) );
+  }
+
+  get_input_endpoint_at( pos_start_from_lsb ) {
+    return this.inputs[ pos_start_from_lsb ];
+  }
+
+  get_output_endpoint_at( addr ) {
+    return this.outputs[addr];
+  }
+}
+
+
+
 class Bus { 
   constructor( addr_decoder, data_width, prefix ) {
     this.network = [];
@@ -100,6 +170,40 @@ class Bus {
     }
 
     return true;
+  }
+
+  get_output_endpoints( ) {
+    return this.outputs;
+  }
+}
+
+class MultiSource {
+  constructor( valids, inputs, data_width, prefix ) {
+    this.network = [];
+    this.data_width = data_width;
+    this.outputs = [];
+    this.prefix = prefix;
+    for( var i = 0 ; i < data_width ; i++ ) {
+      this.outputs.push( new OrGate( prefix + "_o" + i ) );
+      this.network.push( this.outputs[i] );
+    }
+
+    for( var i = 0 ; i < valids.length && i < inputs.length; i++ ) {
+      this.append( valids[i], inputs[i] );
+    }
+  }
+
+  append( valid, input ) {
+    var idx = this.outputs[0].length;
+    for( var i = 0 ; i < this.data_width ; i++ ) {
+      var v = new AndGate( this.prefix + "_o" + i + "." + idx );
+      {
+        v.inputs.push( valid );
+        v.inputs.push( input[i] || SIG_ZERO );
+      }
+      this.outputs[i].inputs.push(v);
+      this.network.push( v );
+    }
   }
 
   get_output_endpoints( ) {
