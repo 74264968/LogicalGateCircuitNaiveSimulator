@@ -1,0 +1,51 @@
+*** STATE MACHINE ***
+   INIT
+    |
+    v
+  FETCH ---> DECODE ---> EXEC_8 -...-> EXEC_0 ---> STORE ---> FETCH ...
+               |                  ^      ^
+               |__________________|      |
+               |                ...      |
+               |_________________________|
+*** Store ***
+  
+  [Memory (64k byte)]
+  [IP (16 bit)]
+
+  |Instruction Holder| = [Cycle (3 bit)] [Addressing Mode (2 bit)] [Command (11bit)] [I.Operand (16 bit)]
+
+  [OPR (16bit)]
+  [AX (16bit)]
+  [BX (16bit)]
+  [CX (16bit)]
+
+  [RES (16bit)]
+
+*** Instruction ***
+
+  Addressing Mode:
+    00: OPR <- imm
+    01: OPR <- mem[AX]
+    10: OPR <- mem[BX]
+    11: OPR <- mem[CX]
+
+  Command:
+    1xxx xxxx xxx: Arithemetic 
+    00xx xxxx xxx: Data Manipulating
+      000x xxxx xdd: ?X <- OPR (MOV)
+      001x xxxx xdd: ?X -> mem[OPR]
+        dd: destination
+          00: no use
+          01: AX
+          10: BX
+          11: CX
+        
+    01xx xxxx xxx: Control
+
+  
+  
+
+
+
+
+

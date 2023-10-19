@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    button {border:1px solid #338; padding:4px;}
+    button:hover {border:1px solid #996;cursor:pointer}
+    .active {background-color: #33aa44; color:#eef}
+    .inactive {background-color: none;}
+  </style>
+  <script language="javascript" src="/core/fundamental/gates.js"></script>
+  <script language="javascript" src="/core/fundamental/simulating.js"></script>
+  <script language="javascript" src="/core/prefabs/stateful.js"></script>
+  <script language="javascript" src="/core/prefabs/stateless.js"></script>
+  <script language="javascript" src="/core/prefabs/alu.js"></script>
+  <script language="javascript" src="/core/prefabs/clock-driven-state-machine.js"></script>
+  <script language="javascript" src="/visualization/time-sequence.js"></script>
+  <script language="javascript" src="/visualization/input-interfaces.js"></script>
+  <script language="javascript" src="/visualization/screen.js"></script>
+  <script language="javascript" src="/visualization/dec-display.js"></script>
+  <script language="javascript" src="/visualization/tracer.js"></script>
+  <script language="javascript" src="/scaffold/helpers.js"></script>
+  <script language="javascript" src="./cpu.16bit.1p.js"></script>
+  <script language="javascript">
+  function Onload( ) {
+    var clk = new Clock( 1, 50 );
+    var mon_sigs = [];
+    var simulator = new Simulator( [], 0 );
+    var tm = new TimeSequenceMonitor( mon_sigs, "timeseq", 768 );
+    //var screen = new PixelScreen( sigs, "screen", 64, 64, 8 );
+    var loop = new MainLoop( simulator, 1, 10 );
+    var reset = CreateInputSwitch( 0, "signalPanel", "reset", simulator );
+    var start = CreateInputSwitch( 0, "signalPanel", "start", simulator );
+    var cycles = [
+      CreateInputSwitch( 0, "signalPanel", 'cycle:b0', simulator ),
+      CreateInputSwitch( 0, "signalPanel", 'b1', simulator ),
+      CreateInputSwitch( 0, "signalPanel", 'b2', simulator ),
+    ];
+    var cpu = new Cpu16Bit1P( clk, reset, start, "cpu" );
+    //test
+    cpu.build_state_machine( clk, cycles );
+    Add2Simulator( simulator, cpu.network );
+    loop.register_monitor( tm );
+    //loop.register_monitor( screen );
+    var sm = cpu.state_machine;
+    function update( )
+    {
+      loop.update();
+    }
+    //monitoring cpu running state
+    {
+    mon_sigs.push( sm.get_output_endpoint_of_is_state( "INIT" ));
+    mon_sigs.push( sm.get_output_endpoint_of_is_state( "FETCH" ));
+    mon_sigs.push( sm.get_output_endpoint_of_is_state( "DECODE"));
+    for( var i = 0 ; i < 8 ; i++ ) {
+      mon_sigs.push( sm.get_output_endpoint_of_is_state( "EXEC_" + i ));
+    }
+    mon_sigs.push( sm.get_output_endpoint_of_is_state( "STORE" ));
+    }
+    setInterval( update, loop.frame_in_ms );
+    loop.start();
+
+    var btnResume = document.getElementById("btnResume");
+    btnResume.onclick = function() { loop.resume(); }
+
+    var btnStop = document.getElementById("btnStop");
+    btnStop.onclick = function() { loop.pause(); }
+
+  }
+  </script>
+</head>
+<body onload="javascript:Onload()">
+  <div>
+  <button id="btnResume">resume</button>
+  <button id="btnStop">stop</button>
+  </div>
+  <div id="signalPanel" style="padding: 20px"></div>
+  <div id="digitPanel" style="padding: 20px"></div>
+  <div>
+  <canvas id="screen"></canvas>
+  </div>
+  <div>
+  <canvas id="timeseq"></canvas>
+  </div>
+</body>
+</html>
