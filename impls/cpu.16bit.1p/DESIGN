@@ -1,4 +1,4 @@
-*** STATE MACHINE ***
+*** STATES ***
    INIT
     |
     v
@@ -17,20 +17,20 @@
   [OPR (16bit)]
   [AX (16bit)]
   [BX (16bit)]
-  [CX (16bit)]
 
   [RES (16bit)]
 
-*** Instruction ***
+*** Instructions ***
 
   Addressing Mode:
     00: OPR <- imm
-    01: OPR <- mem[AX]
-    10: OPR <- mem[BX]
-    11: OPR <- mem[CX]
+    01: OPR <- mem[imm]
+    10: OPR <- mem[AX]
+    11: OPR <- mem[BX]
 
   Command:
     1xxx xxxx xxx: Arithemetic 
+
     00xx xxxx xxx: Data Manipulating
       000x xxxx xdd: ?X <- OPR (MOV)
       001x xxxx xdd: ?X -> mem[OPR]
@@ -41,6 +41,9 @@
           11: CX
         
     01xx xxxx xxx: Control
+      0100 xxxx xxx: JMP
+      0101 xxxx xxx: JNZ
+      0110 xxxx xxx: JZ
 
   
   

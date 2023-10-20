@@ -31,15 +31,37 @@
     var reset = CreateInputSwitch( 0, "signalPanel", "reset", simulator );
     var start = CreateInputSwitch( 0, "signalPanel", "start", simulator );
     var cycles = [
-      CreateInputSwitch( 0, "signalPanel", 'cycle:b0', simulator ),
-      CreateInputSwitch( 0, "signalPanel", 'b1', simulator ),
-      CreateInputSwitch( 0, "signalPanel", 'b2', simulator ),
+      CreateInputSwitch( 0, "signalPanel", 'cycle:+1', simulator ),
+      CreateInputSwitch( 0, "signalPanel", '+2', simulator ),
+      CreateInputSwitch( 0, "signalPanel", '+4', simulator ),
     ];
     var cpu = new Cpu16Bit1P( clk, reset, start, "cpu" );
+    window.cpu = cpu;
     //test
-    cpu.build_state_machine( clk, cycles );
+    var init_size = 128*8;
+    var init_values = [];
+    for( var i = 0 ; i < init_size / 8 ; i++ ) {
+      for( var j = 0 ; j < 8 ; j++ ) {
+        if( (i & (1<<j)) ) {
+          init_values.push( SIG_ONE );
+        } else {
+          init_values.push( SIG_ZERO );
+        }
+      }
+    }
+    for( var i = 0 ; i < init_size / 8 ; i++ ) {
+      cpu.bind_read_address( i, init_values.slice( i*8, i*8+32 ) );
+    }
+
     Add2Simulator( simulator, cpu.network );
     loop.register_monitor( tm );
+    loop.register_monitor( new DecimalDisplay( cpu.IP.map( (x)=>x.get_output_endpoint() ), false, "digitPanel", "IP:" ) );
+    loop.register_monitor( new DecimalDisplay( cpu.simple_next_ip, false, "digitPanel", "IP+4: " ) );
+    loop.register_monitor( new DecimalDisplay( cpu.conn_IP_input, false, "digitPanel", "next_IP: " ) );
+    loop.register_monitor( new DecimalDisplay( cpu.select_next_ip, false, "digitPanel", "selected_IP: " ) );
+    loop.register_monitor( new DecimalDisplay( cpu.memory_reading_decoder_address.get_output_endpoints(), false, "digitPanel", "mem_read_addr: " ) );
+    loop.register_monitor( new DecimalDisplay( cpu.instruction_input, false, "digitPanel", "instruction_input: " ) );
+    loop.register_monitor( new DecimalDisplay( cpu.instruction.map( (x) => x.get_output_endpoint() ).slice(0,8), false, "digitPanel", "instruction: " ) );
     //loop.register_monitor( screen );
     var sm = cpu.state_machine;
     function update( )
@@ -48,6 +70,8 @@
     }
     //monitoring cpu running state
     {
+    mon_sigs.push( clk );
+    mon_sigs.push( cpu.ip_enable );
     mon_sigs.push( sm.get_output_endpoint_of_is_state( "INIT" ));
     mon_sigs.push( sm.get_output_endpoint_of_is_state( "FETCH" ));
     mon_sigs.push( sm.get_output_endpoint_of_is_state( "DECODE"));
