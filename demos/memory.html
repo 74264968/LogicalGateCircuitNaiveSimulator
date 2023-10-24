@@ -16,6 +16,7 @@
   <script language="javascript" src="/visualization/screen.js"></script>
   <script language="javascript" src="/visualization/dec-display.js"></script>
   <script language="javascript" src="/scaffold/helpers.js"></script>
+  <script language="javascript" src="/fake/fake-rwmemory.js"></script>
   <script language="javascript">
   function Onload( ) {
     var ADDR_WIDTH = 5; // 32 bytes
@@ -108,18 +109,30 @@
       }
     }
     
-    var rwmem = new RWMemory( 10, 4, "mem.1k" );
-    Add2Simulator( simulator, rwmem.network ); 
-    rwmem.get_enable_endpoint().connect_to( CreateInputSwitch( 0, "memoryPanel", "mem.1k.en", simulator ) );
-    rwmem.get_init_endpoint().connect_to( CreateInputSwitch( 0, "memoryPanel", "mem.1k.init", simulator ) );
-    Connect( rwmem.get_input_endpoints(), CreateInputDigits( 8, "memoryPanel", "mem.1k.data", simulator ) );
-    Connect( rwmem.get_addr_endpoints(), CreateInputDigits( 16, "memoryPanel", "mem.1k.addr", simulator ) );
-    loop.register_monitor( new DecimalDisplay( rwmem.get_output_endpoints(), false, "memoryPanel", "rwmem.read", true ) );
-
     var mon_sigs = [
-      rwmem.get_enable_endpoint(),
-      rwmem.get_init_endpoint(),
     ];
+    {
+      var rwmem = new RWMemory( 10, 4, "mem.1k" );
+      Add2Simulator( simulator, rwmem.network ); 
+      rwmem.get_enable_endpoint().connect_to( CreateInputSwitch( 0, "memoryPanel", "mem.1k.en", simulator ) );
+      rwmem.get_init_endpoint().connect_to( CreateInputSwitch( 0, "memoryPanel", "mem.1k.init", simulator ) );
+      Connect( rwmem.get_input_endpoints(), CreateInputDigits( 8, "memoryPanel", "mem.1k.data", simulator ) );
+      Connect( rwmem.get_addr_endpoints(), CreateInputDigits( 16, "memoryPanel", "mem.1k.addr", simulator ) );
+      loop.register_monitor( new DecimalDisplay( rwmem.get_output_endpoints(), false, "memoryPanel", "rwmem.read", true ) );
+    }
+
+    {
+      var rwmem = new FakeRWMemory( 10, 4, "fmem.1k" );
+      Add2Simulator( simulator, rwmem.network ); 
+      rwmem.get_enable_endpoint().connect_to( CreateInputSwitch( 0, "memoryPanel", "fmem.1k.en", simulator ) );
+      rwmem.get_init_endpoint().connect_to( CreateInputSwitch( 0, "memoryPanel", "fmem.1k.init", simulator ) );
+      Connect( rwmem.get_input_endpoints(), CreateInputDigits( 8, "memoryPanel", "fmem.1k.data", simulator ) );
+      Connect( rwmem.get_addr_endpoints(), CreateInputDigits( 16, "memoryPanel", "fmem.1k.addr", simulator ) );
+      loop.register_monitor( new DecimalDisplay( rwmem.get_output_endpoints(), false, "memoryPanel", "rwmem.read", true ) );
+    }
+
+
+
     var tm = new TimeSequenceMonitor( mon_sigs, "timeseq", 768 );
     loop.register_monitor( tm );
 
