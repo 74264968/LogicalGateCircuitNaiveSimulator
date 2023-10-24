@@ -94,7 +94,10 @@ class Storage {
       var octet = new Octet( octet_enable, this.new_value_inputs, prefix + "_ot" + i );
       this.octets.push( octet );
       this.network.push( octet_enable );
-      this.network = this.network.concat( octet.network );
+      for( var n = 0 ; n < octet.network.length ; n++ ) 
+      {
+        this.network.push( octet.network[n] );
+      }
     }
 
   }
@@ -106,4 +109,56 @@ class Storage {
   get_output_endpoints_at( addr ) {
     return this.octets[ addr - this.addr_start ].get_output_endpoints();
   }
+}
+
+class RWMemory {
+  /*
+  create a memory with capacity of 2^addr_width bytes, will create decoder, bus automatically
+  */
+  constructor( addr_width, read_width_in_bytes, name ) {
+    this.network = [];
+    this.name = name;
+    this.conn_enable = new Connector( null, 1, name + "_en" ); 
+    this.conn_init = new Connector( null, 1, name + "_init" );
+    this.addr_decoder = new Decoder( addr_width, name + "_dec" , parseInt(addr_width / 2) );
+    this.read_bus = new Bus( this.addr_decoder, read_width_in_bytes * 8, name  + "_rbus" );
+    var capacity = 1<<addr_width;
+    this.storage = new Storage( this.conn_enable, this.addr_decoder, 0, capacity, name + "_str", this.conn_init );
+
+    //bind the outputs
+    for( var i = 0 ; i < capacity ; i++ ) {
+      var endpoints = [];
+      for( var j = 0 ; i+j < capacity && j < read_width_in_bytes ; j++ ) {
+        endpoints = endpoints.concat( this.storage.get_output_endpoints_at( i+j ) );
+      }
+      this.read_bus.append( i, endpoints );
+    }
+
+    this.network.push( this.conn_enable );
+    this.network.push( this.conn_init );
+    this.network = this.network.concat( this.addr_decoder.network );
+    this.network = this.network.concat( this.read_bus.network );
+    this.network = this.network.concat( this.storage.network );
+  }
+  
+  get_enable_endpoint( ) {
+    return this.conn_enable;
+  }
+
+  get_init_endpoint( ) {
+    return this.conn_init;
+  }
+
+  get_input_endpoints( ) {
+    return this.storage.new_value_inputs;
+  }
+
+  get_addr_endpoints( ) {
+    return this.addr_decoder.inputs;
+  }
+
+  get_output_endpoints( ) {
+    return this.read_bus.get_output_endpoints();
+  }
+
 }

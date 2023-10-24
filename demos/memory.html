@@ -15,6 +15,7 @@
   <script language="javascript" src="/visualization/input-interfaces.js"></script>
   <script language="javascript" src="/visualization/screen.js"></script>
   <script language="javascript" src="/visualization/dec-display.js"></script>
+  <script language="javascript" src="/scaffold/helpers.js"></script>
   <script language="javascript">
   function Onload( ) {
     var ADDR_WIDTH = 5; // 32 bytes
@@ -106,9 +107,20 @@
         loop.register_monitor( tmp );
       }
     }
+    
+    var rwmem = new RWMemory( 10, 4, "mem.1k" );
+    Add2Simulator( simulator, rwmem.network ); 
+    rwmem.get_enable_endpoint().connect_to( CreateInputSwitch( 0, "memoryPanel", "mem.1k.en", simulator ) );
+    rwmem.get_init_endpoint().connect_to( CreateInputSwitch( 0, "memoryPanel", "mem.1k.init", simulator ) );
+    Connect( rwmem.get_input_endpoints(), CreateInputDigits( 8, "memoryPanel", "mem.1k.data", simulator ) );
+    Connect( rwmem.get_addr_endpoints(), CreateInputDigits( 16, "memoryPanel", "mem.1k.addr", simulator ) );
+    loop.register_monitor( new DecimalDisplay( rwmem.get_output_endpoints(), false, "memoryPanel", "rwmem.read", true ) );
 
-
-    var tm = new TimeSequenceMonitor( seqs, "timeseq", 768 );
+    var mon_sigs = [
+      rwmem.get_enable_endpoint(),
+      rwmem.get_init_endpoint(),
+    ];
+    var tm = new TimeSequenceMonitor( mon_sigs, "timeseq", 768 );
     loop.register_monitor( tm );
 
 
@@ -135,6 +147,7 @@
   </div>
   <canvas id="timeseq"></canvas>
   </div>
+  <div id="memoryPanel" style="padding: 20px"></div>
   <div id="inputPanel" style="padding: 20px"></div>
   <div id="outputPanel" style="padding: 20px"></div>
   <div>
