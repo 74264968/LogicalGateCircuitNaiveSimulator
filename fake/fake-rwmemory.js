@@ -21,6 +21,8 @@ class FakeRWMemory {
   constructor( addr_width, read_width_in_bytes, name, initial_bytes ) {
     this.network = [];
     this.values = {};
+    this.initial_bytes = initial_bytes;
+    this.init_bytes( this.initial_bytes );
 
     this.capacity = 1<<addr_width;
     this.simulated_so_far = -1;
@@ -46,6 +48,13 @@ class FakeRWMemory {
     return 0;
   }
 
+  init_bytes( initial_bytes ) {
+    this.values = {};
+    for( var i = 0 ; initial_bytes && i < initial_bytes.length ; i++ ) {
+      this.values[i] = initial_bytes[i];
+    }
+  }
+
   simulate( tick ) {
     if( this.simulated_so_far >= tick ) return;
     var addr = 0;
@@ -60,7 +69,7 @@ class FakeRWMemory {
 
     if( this.conn_enable.peek( tick ) ) {
       if( this.conn_init.peek( tick ) ) {
-        this.values = {};
+        this.initial_bytes( this.initial_bytes );
       } else {
         var new_value = 0;
         for( var j = 0 ; j < 8 ; j++ ) {

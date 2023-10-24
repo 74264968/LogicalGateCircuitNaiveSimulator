@@ -360,13 +360,10 @@ SIG_ONE.set_const();
 
 function NewComponentArray( count, what, prefix_or_name_loc, ...rest) {
   var res = [];
-  //console.log( count );
   for( var i = 0 ; i < count ; i++ ) {
     var args = [];
     for( var j = 0 ; j < rest.length ; j++ ) {
-      //console.log( i, j, args[j] );
       if( rest[j] && Object.getPrototypeOf(rest[j]) === Object.getPrototypeOf([]) ) {
-        //console.log( 'binding to ' + rest[j][i].name );
         args.push( rest[j][i] );
       } else {
         args.push( rest[j] );
@@ -380,7 +377,7 @@ function NewComponentArray( count, what, prefix_or_name_loc, ...rest) {
 
 function Connect( connectors, others, check ) {
   if( check && connectors.length != others.length ) {
-    throw "trying to connect two groups of endpoints, but you said it was illegal";
+    throw `trying to connect two groups of diff endpoints from ${connectors.length} to ${others.length}, but you said it was illegal`;
   }
   for( var i = 0 ; i < connectors.length ; i++ ) {
     if( others[i] ) {

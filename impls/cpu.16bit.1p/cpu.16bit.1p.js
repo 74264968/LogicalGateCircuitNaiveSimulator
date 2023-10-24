@@ -22,14 +22,34 @@ class Cpu16Bit1P {
 
     this.build_state_machine( );
     this.setup_IP();
-    this.setup_memory_reading_bus( );
+    this.setup_memory_pins( );
     this.setup_instruction( );
+    this.setup_registers( );
+    this.setup_operand();
 
     this.network = GET_RECORDING_SOFAR();
   }
 
+  connect_memory( mem ) {
+    mem.get_enable_endpoint().connect_to( this.ms_memory_enable.get_output_endpoints()[0] );
+    mem.get_init_endpoint().connect_to( this.memory_init );
+    Connect( mem.get_input_endpoints(), this.ms_memory_input.get_output_endpoints(), true );
+    Connect( mem.get_addr_endpoints(), this.ms_memory_addr.get_output_endpoints(), true );
+    Connect( this.conn_memory_output, mem.get_output_endpoints(), true );
+  }
+
+  /*
   bind_read_address( address, inputs ) {
     this.memory_reading_bus.append( address, inputs );
+  }
+  */
+
+  setup_operand() {
+    //TODO
+  }
+
+  setup_registers( ) {
+    //TODO
   }
 
   setup_instruction( ) {
@@ -47,19 +67,24 @@ class Cpu16Bit1P {
       this.conn_instruction_enable.connect_to( this.instruction_enable );
     }
 
-    Connect( this.instruction_input, this.memory_reading_bus.get_output_endpoints() );
+    Connect( this.instruction_input, this.conn_memory_output );
+    Connect( this.conn_cmd_cycle, this.instruction.map( (x) => x.get_output_endpoint() ) );
 
   }
 
-  setup_memory_reading_bus( ) {
-    this.memory_reading_decoder = new Decoder( this.ADDR_WIDTH, this.name + ".mem_read_dec", 8 );
-    this.memory_reading_bus = new Bus( this.memory_reading_decoder, 32, this.name + ".mem_read_bus" );
-    this.memory_reading_decoder_address = new MultiSource( [], [], this.ADDR_WIDTH, this.name + ".mem_r_addr" ); 
+  setup_memory_pins( ) {
+    var MEM_ADDR_VALID_N_SRCS = [
+      [this.state_machine.get_output_endpoint_of_is_state( this.FETCH ), this.IP.map( (x) => x.get_output_endpoint() ) ],
+    ];
 
-    this.memory_reading_decoder_address.append( this.state_machine.get_output_endpoint_of_is_state( this.FETCH ), this.IP.map( (x) => x.get_output_endpoint() ) );
-    //TODO: when decode, use instruction addressing mode
+    this.ms_memory_enable = new MultiSource( [], [], 1, this.name + "_mem_en" ); 
 
-    Connect( this.memory_reading_decoder.inputs, this.memory_reading_decoder_address.get_output_endpoints() );
+    this.memory_init = this.reset;
+
+    this.ms_memory_addr = new MultiSource( MEM_ADDR_VALID_N_SRCS.map( (x)=>x[0] ), MEM_ADDR_VALID_N_SRCS.map( (x)=>x[1] ), this.ADDR_WIDTH, this.name + "_mem_addr" );
+
+    this.ms_memory_input = new MultiSource( [], [], this.BYTE_WIDTH, this.name + "_mem_in" );
+    this.conn_memory_output = NewComponentArray( this.MEM_READ_WIDTH, Connector, 2, null, 1, this.name + "_mem_val" );
   }
 
   setup_IP( ) {
