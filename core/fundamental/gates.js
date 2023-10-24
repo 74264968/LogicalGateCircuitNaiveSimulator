@@ -387,3 +387,21 @@ function Connect( connectors, others, check ) {
     }
   }
 }
+
+function CreateByMask( vals, nvals, mask_str, name ) {
+  console.assert( vals.length == nvals.length );
+  var res = new AndGate( name );
+  for( var i = 0 ; i < mask_str.length ; i++ ) {
+    if( mask_str[i] == '1' ) res.inputs.push( vals[i] );
+    else if ( mask_str[i] == '0' ) res.inputs.push( nvals[i] );
+  }
+  return res;
+}
+
+function CreateAnd( name, ...gates ) {
+  var res = new AndGate( name );
+  for( var i = 0 ; i < gates.length ; i++ ) {
+    res.inputs.push( gates[i] );
+  }
+  return res;
+}

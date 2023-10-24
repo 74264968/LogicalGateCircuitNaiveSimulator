@@ -31,14 +31,22 @@
     var loop = new MainLoop( simulator, 1, 10 );
     var reset = CreateInputSwitch( 0, "signalPanel", "reset", simulator );
     var start = CreateInputSwitch( 0, "signalPanel", "start", simulator );
-    var cycles = [
-      CreateInputSwitch( 0, "signalPanel", 'cycle:+1', simulator ),
-      CreateInputSwitch( 0, "signalPanel", '+2', simulator ),
-      CreateInputSwitch( 0, "signalPanel", '+4', simulator ),
-    ];
     var cpu = new Cpu16Bit1P( clk, reset, start, "cpu" );
-    var initial_bytes = [];
-    for( var i = 0 ; i < 256 ; i++ ) {initial_bytes.push( i );}
+    var initial_bytes = [
+      parseInt('00100000'.split('').reverse().join(''),2),0,1,2,
+
+      parseInt('01001000'.split('').reverse().join(''),2),
+      parseInt('00000001'.split('').reverse().join(''),2),
+      3,4,
+
+      parseInt('10010000'.split('').reverse().join(''),2),
+      parseInt('00000010'.split('').reverse().join(''),2),
+      5,6,
+
+      parseInt('10111000'.split('').reverse().join(''),2),0,7,8,
+    ];
+    initial_bytes = initial_bytes.concat( initial_bytes );
+    initial_bytes = initial_bytes.concat( initial_bytes );
     var mem = new FakeRWMemory( cpu.ADDR_WIDTH, cpu.MEM_READ_WIDTH / 8, "64k.mem", initial_bytes ); 
     cpu.connect_memory( mem );
     window.cpu = cpu;
@@ -46,6 +54,15 @@
     Add2Simulator( simulator, cpu.network );
     Add2Simulator( simulator, mem.network );
     loop.register_monitor( tm );
+    loop.register_monitor( new DecimalDisplay( cpu.conn_addressing_mode, false, "controlPins", "am" ) );
+    loop.register_monitor( new DecimalDisplay( [cpu.addressing_mode['imm']], false, "controlPins", "am.imm" ) );
+    loop.register_monitor( new DecimalDisplay( [cpu.addressing_mode['index']], false, "controlPins", "am.index" ) );
+    loop.register_monitor( new DecimalDisplay( [cpu.addressing_mode['index_ax']], false, "controlPins", "am.index_ax" ) );
+    loop.register_monitor( new DecimalDisplay( [cpu.addressing_mode['index_bx']], false, "controlPins", "am.index_bx" ) );
+    loop.register_monitor( new DecimalDisplay( [cpu.dst_ax], false, "controlPins", "dst_ax" ) );
+    loop.register_monitor( new DecimalDisplay( [cpu.dst_bx], false, "controlPins", "dst_bx" ) );
+    loop.register_monitor( new DecimalDisplay( cpu.conn_ax, false, "controlPins", "AX", true ) );
+    loop.register_monitor( new DecimalDisplay( cpu.conn_bx, false, "controlPins", "BX", true ) );
     loop.register_monitor( new DecimalDisplay( cpu.IP.map( (x)=>x.get_output_endpoint() ), false, "digitPanel", "IP:" ) );
     loop.register_monitor( new DecimalDisplay( cpu.simple_next_ip, false, "digitPanel", "IP+4: " ) );
     loop.register_monitor( new DecimalDisplay( cpu.conn_IP_input, false, "digitPanel", "next_IP: " ) );
@@ -55,6 +72,7 @@
     loop.register_monitor( new DecimalDisplay( cpu.instruction.map( (x) => x.get_output_endpoint() ), false, "digitPanel", "instruction: ", true ) );
     loop.register_monitor( new DecimalDisplay( cpu.instruction.slice(0,3).map( (x) => x.get_output_endpoint() ), false, "digitPanel", "instruction(cycle): " ) );
     loop.register_monitor( new DecimalDisplay( cpu.conn_cmd_cycle, false, "digitPanel", "cycle: " ) );
+    loop.register_monitor( new DecimalDisplay( cpu.conn_i_operand, false, "digitPanel", "i_operand: ", true ) );
     //loop.register_monitor( screen );
     var sm = cpu.state_machine;
     function update( )
@@ -92,6 +110,7 @@
   <button id="btnStop">stop</button>
   </div>
   <div id="signalPanel" style="padding: 20px"></div>
+  <div id="controlPins" style="padding: 20px;display:inline-block"></div>
   <div id="digitPanel" style="padding: 20px"></div>
   <div>
   <canvas id="screen"></canvas>

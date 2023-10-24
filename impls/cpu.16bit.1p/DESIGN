@@ -7,6 +7,19 @@
                |__________________|      |
                |                ...      |
                |_________________________|
+
+  * FETCH:
+      mem[IP:IP+4] -> Instructions
+
+  * DECODE:
+      prepare operand according addressing mode
+
+  * EXEC xxx:
+      
+
+  * STORE:
+      write back result to dst
+
 *** Store ***
   
   [Memory (64k byte)]
@@ -20,6 +33,7 @@
 
   [RES (16bit)]
 
+
 *** Instructions ***
 
   Addressing Mode:
@@ -29,21 +43,21 @@
     11: OPR <- mem[BX]
 
   Command:
-    1xxx xxxx xxx: Arithemetic 
+    1xxx xxxx xdd: Arithemetic 
 
-    00xx xxxx xxx: Data Manipulating
+    00xx xxxx xdd: Data Manipulating
       000x xxxx xdd: ?X <- OPR (MOV)
       001x xxxx xdd: ?X -> mem[OPR]
         dd: destination
           00: no use
           01: AX
           10: BX
-          11: CX
+          11: no use
         
-    01xx xxxx xxx: Control
-      0100 xxxx xxx: JMP
-      0101 xxxx xxx: JNZ
-      0110 xxxx xxx: JZ
+    01xx xxxx x00: Control
+      0100 xxxx x00: JMP
+      0101 xxxx x00: JNZ
+      0110 xxxx x00: JZ
 
   
   

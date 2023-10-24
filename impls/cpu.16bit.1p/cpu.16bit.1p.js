@@ -5,6 +5,7 @@ class Cpu16Bit1P {
     this.BYTE_WIDTH = 8;
     this.INSTRUCTION_WIDTH = 32;
     this.MEM_READ_WIDTH = this.INSTRUCTION_WIDTH;
+    this.OPERAND_WIDTH = 16;
     this.clock = clock;
     this.reset = reset;
     this.start = start;
@@ -16,11 +17,16 @@ class Cpu16Bit1P {
     this.conn_cmd_cycle = NewComponentArray( 3, Connector, 2,
       null, 1, this.name + ".conn_cmd_cycle" );
     this.conn_addressing_mode = NewComponentArray( 2, Connector, 2, null, 1, this.name + ".conn_addressing_mode" );
+    this.n_conn_addressing_mode = NewComponentArray( this.conn_addressing_mode.length, NotGate, 0, this.name + ".n_conn_addressing_mode", this.conn_addressing_mode );
     this.conn_cmd = NewComponentArray( 11, Connector, 2, null, 1, this.name + ".conn_cmd" );
-    this.conn_i_operand = NewComponentArray( 16, Connector, 2, null, 1, this.name + ".conn_i_operand" );
+    this.n_conn_cmd = NewComponentArray( this.conn_cmd.length, NotGate, 0, this.name + ".n_conn_cmd", this.conn_cmd );
+    this.conn_i_operand = NewComponentArray( this.OPERAND_WIDTH, Connector, 2, null, 1, this.name + ".conn_i_operand" );
+    this.conn_ax = NewComponentArray( this.OPERAND_WIDTH, Connector, 2, null, 1, this.name + ".conn_ax" );
+    this.conn_bx = NewComponentArray( this.OPERAND_WIDTH, Connector, 2, null, 1, this.name + ".conn_bx" );
 
 
     this.build_state_machine( );
+    this.setup_cpu_controls( );
     this.setup_IP();
     this.setup_memory_pins( );
     this.setup_instruction( );
@@ -38,6 +44,21 @@ class Cpu16Bit1P {
     Connect( this.conn_memory_output, mem.get_output_endpoints(), true );
   }
 
+
+  setup_cpu_controls( ) {
+    this.addressing_mode = {};
+    this.addressing_mode['imm'] = CreateByMask( this.conn_addressing_mode, this.n_conn_addressing_mode, '00', this.name + '.am.imm' );
+    this.addressing_mode['index'] = CreateByMask( this.conn_addressing_mode, this.n_conn_addressing_mode, '01', this.name + '.am.index' );
+    this.addressing_mode['index_ax'] = CreateByMask( this.conn_addressing_mode, this.n_conn_addressing_mode, '10', this.name + '.am.index_ax' );
+    this.addressing_mode['index_bx'] = CreateByMask( this.conn_addressing_mode, this.n_conn_addressing_mode, '11', this.name + '.am.index_bx' );
+
+    var cmd = this.conn_cmd;
+    var ncmd = this.n_conn_cmd;
+    this.dm = CreateByMask( cmd, ncmd, '00', this.name + '.dm' );
+    this.dst_ax = CreateByMask( cmd, ncmd, '000xxxxxx01', this.name + '.dst_ax' );
+    this.dst_bx = CreateByMask( cmd, ncmd, '000xxxxxx10', this.name + '.dst_bx' );
+  }
+
   /*
   bind_read_address( address, inputs ) {
     this.memory_reading_bus.append( address, inputs );
@@ -45,11 +66,24 @@ class Cpu16Bit1P {
   */
 
   setup_operand() {
-    //TODO
+    this.decode_written_sig = new AndGate( this.name + ".operand_enable" );
+    {
+      this.decode_written_sig.inputs.push( this.falling_edge );
+      this.decode_written_sig.inputs.push( this.state_machine.get_output_endpoint_of_is_state( this.DECODE ) );
+    }
+    this.operand = NewComponentArray( this.OPERAND_WIDTH, Bit, 2, this.decode_written_sig, this.conn_memory_output.slice(0,16), this.name + ".operand" );
   }
 
   setup_registers( ) {
-    //TODO
+    this.result_to_store = new MultiSource( [], [], this.OPERAND_WIDTH, this.name + ".res" );
+
+    this.ax_enable = CreateAnd( this.name + ".ax_en", this.falling_edge, this.state_machine.get_output_endpoint_of_is_state( this.STORE ), this.dst_ax );
+    this.AX = NewComponentArray( this.OPERAND_WIDTH, Bit, 2, this.ax_enable, this.result_to_store.get_output_endpoints(), this.name + ".AX" );
+    Connect( this.conn_ax, this.AX.map( (x) => x.get_output_endpoint() ) );
+
+    this.bx_enable = CreateAnd( this.name + ".bx_en", this.falling_edge, this.state_machine.get_output_endpoint_of_is_state( this.STORE ), this.dst_bx );
+    this.BX = NewComponentArray( this.OPERAND_WIDTH, Bit, 2, this.bx_enable, this.result_to_store.get_output_endpoints(), this.name + ".BX" );
+    Connect( this.conn_bx, this.BX.map( (x) => x.get_output_endpoint() ) );
   }
 
   setup_instruction( ) {
@@ -68,22 +102,37 @@ class Cpu16Bit1P {
     }
 
     Connect( this.instruction_input, this.conn_memory_output );
-    Connect( this.conn_cmd_cycle, this.instruction.map( (x) => x.get_output_endpoint() ) );
+    Connect( this.conn_cmd_cycle, this.instruction.slice(0,3).map( (x) => x.get_output_endpoint() ) );
+    Connect( this.conn_addressing_mode, this.instruction.slice(3,3+2).map( (x) => x.get_output_endpoint() ) );
+    Connect( this.conn_cmd, this.instruction.slice(5,5+11).map( (x) => x.get_output_endpoint() ) );
+    Connect( this.conn_i_operand, this.instruction.slice(16).map( (x) => x.get_output_endpoint() ) );
 
   }
 
   setup_memory_pins( ) {
+    var MEM_ADDR_VALID_N_SRCS_WHEN_DECODE = [
+      [this.addressing_mode['index'], this.conn_i_operand],
+      [this.addressing_mode['index_ax'], this.conn_ax],
+      [this.addressing_mode['index_bx'], this.conn_bx],
+    ];
+    this.ms_memory_addr_source_when_decode = new MultiSource( 
+      MEM_ADDR_VALID_N_SRCS_WHEN_DECODE.map( (x) => x[0] ), 
+      MEM_ADDR_VALID_N_SRCS_WHEN_DECODE.map( (x) => x[1] ), 
+      this.ADDR_WIDTH, this.name + ".mem_addr.decode" );
+
     var MEM_ADDR_VALID_N_SRCS = [
       [this.state_machine.get_output_endpoint_of_is_state( this.FETCH ), this.IP.map( (x) => x.get_output_endpoint() ) ],
+      [this.state_machine.get_output_endpoint_of_is_state( this.DECODE ), this.ms_memory_addr_source_when_decode.get_output_endpoints() ],
     ];
 
-    this.ms_memory_enable = new MultiSource( [], [], 1, this.name + "_mem_en" ); 
+
+    this.ms_memory_enable = new MultiSource( [], [], 1, this.name + ".mem_en" ); 
 
     this.memory_init = this.reset;
 
-    this.ms_memory_addr = new MultiSource( MEM_ADDR_VALID_N_SRCS.map( (x)=>x[0] ), MEM_ADDR_VALID_N_SRCS.map( (x)=>x[1] ), this.ADDR_WIDTH, this.name + "_mem_addr" );
+    this.ms_memory_addr = new MultiSource( MEM_ADDR_VALID_N_SRCS.map( (x)=>x[0] ), MEM_ADDR_VALID_N_SRCS.map( (x)=>x[1] ), this.ADDR_WIDTH, this.name + ".mem_addr" );
 
-    this.ms_memory_input = new MultiSource( [], [], this.BYTE_WIDTH, this.name + "_mem_in" );
+    this.ms_memory_input = new MultiSource( [], [], this.BYTE_WIDTH, this.name + ".mem_in" );
     this.conn_memory_output = NewComponentArray( this.MEM_READ_WIDTH, Connector, 2, null, 1, this.name + "_mem_val" );
   }
 
