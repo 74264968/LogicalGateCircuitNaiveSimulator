@@ -128,7 +128,7 @@ class Cpu16Bit1P {
     this.load_from_ax = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00010', this.name + ".dd/from_ax" );
     this.load_from_bx = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00011', this.name + ".dd/from_bx" );
 
-    this.cmd_is_system = CreateByMask( this.alias_cmd, this.alias_n_cmd, '000', this.name + ".cmd/sys" );
+    this.cmd_is_dm = CreateByMask( this.alias_cmd, this.alias_n_cmd, '000', this.name + ".cmd/sys" );
 
   }
 
@@ -142,6 +142,30 @@ class Cpu16Bit1P {
       this.ms_memory_addr_when_decode.append( this.index_bx, this.bx );
     }
     this.ms_memory_addr.append( this.alias_is_decode, this.ms_memory_addr_when_decode.get_output_endpoints() );
+
+    this.opr_add_1 = new Adder( this.opr, [SIG_ONE], this.name + ".opr+1" ).get_output_endpoints();
+    var dm_when_exec = CreateAnd( this.name + ".dm2mem/exec", this.alias_is_exec, this.cmd_is_dm );
+    var dm_when_store = CreateAnd( this.name = ".dm2mem/store", this.alias_is_store, this.cmd_is_dm );
+
+    this.ms_memory_en.append( this.alias_is_init, [this.falling_edge] );
+
+    //dm
+    //write first byte
+    var dm_a0 = CreateAnd( this.name + ".dm2mem/from_ax0", this.alias_is_exec, this.load_from_ax );
+    var dm_b0 = CreateAnd( this.name + ".dm2mem/from_bx0", this.alias_is_exec, this.load_from_bx );
+    this.ms_memory_addr.append( dm_when_exec, this.opr );
+    this.ms_memory_input.append( dm_a0, this.ax.slice(0, 8) );
+    this.ms_memory_input.append( dm_b0, this.bx.slice(0, 8) );
+    this.ms_memory_en.append( dm_when_exec, [this.falling_edge] );
+
+    //write the second byte
+    var dm_a1 = CreateAnd( this.name + ".dm2mem/from_ax1", this.alias_is_store, this.load_from_ax );
+    var dm_b1 = CreateAnd( this.name + ".dm2mem/from_bx1", this.alias_is_store, this.load_from_bx );
+    this.ms_memory_addr.append( dm_when_store, this.opr_add_1 );
+    this.ms_memory_input.append( dm_a1, this.ax.slice(8,16) );
+    this.ms_memory_input.append( dm_b1, this.bx.slice(8,16) );
+    this.ms_memory_en.append( dm_when_store, [this.falling_edge] );
+
   }
 
   setup_ip() {
@@ -191,7 +215,7 @@ class Cpu16Bit1P {
 
     this.ms_ires_when_exec = new MultiSource( [], [], this.OPERAND_WIDTH, this.name + ".ms_ires/exec" );
     {
-      this.ms_ires_when_exec.append( this.cmd_is_system, this.opr );
+      this.ms_ires_when_exec.append( this.cmd_is_dm, this.opr );
     }
     this.ms_ires.append( this.alias_is_exec, this.ms_ires_when_exec.get_output_endpoints() );
     this.ms_ires_en.append( this.alias_is_exec, [this.falling_edge] );
@@ -212,6 +236,7 @@ class Cpu16Bit1P {
 
     this.ms_bx.append( this.alias_is_store, this.ires );
     this.ms_bx_en.append( CreateAnd( this.name + '.to_bx', this.alias_is_store, this.load_to_bx ), [this.falling_edge] );
+
   }
 
 //  setup_intermediate_result( ) {

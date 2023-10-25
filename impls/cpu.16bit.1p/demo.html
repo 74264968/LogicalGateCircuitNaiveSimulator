@@ -31,8 +31,10 @@
       this.cpu = new Cpu16Bit1P( this.clock, this.reset, this.start, "cpu" );
       var initial_bytes = [
       //cccaasss   ddxxxxxx ...
-       '00000000','00000000', 0xaa, 0, // move 0xaa -> ax
-       '00000000','01000000', 0xbb, 0, // move 0xbb -> bx
+       '00000000','00000000', 0xaa, 0xa0, // move 0xaa -> ax
+       '00000000','01000000', 0xbb, 0xb0, // move 0xbb -> bx
+       '00000000','10000000', 0, 0xaa, // move ax -> mem[0xaa] mem[0xaa+1]
+       '00000000','11000000', 0, 0xbb, // move bx -> mem[0xbb] mem[0xbb+1]
        '00000111','11111111', 0, 0, //EXIT
       ].map( (x) => {
         if( typeof(x) === 'string' ) {
@@ -46,6 +48,7 @@
       this.cpu.connect_memory( this.mem );
       this.sm = this.cpu.state_machine;
       window.cpu = this.cpu;
+      window.mem = this.mem;
     }
 
     get_network( ) {
@@ -67,6 +70,7 @@
 
     get_watch_sigs( ) {
       return [
+        this.cpu.ms_memory_en.get_output_endpoints()[0],
         this.sm.get_output_endpoint_of_is_state( "INIT" ),
         this.sm.get_output_endpoint_of_is_state( "FETCH" ),
         this.sm.get_output_endpoint_of_is_state( "DECODE" ),
@@ -136,7 +140,7 @@
     }
     setInterval( update, loop.frame_in_ms );
 
-    loop.start();
+    //loop.start();
 
     var btnResume = document.getElementById("btnResume");
     btnResume.onclick = function() { loop.resume(); }

@@ -35,7 +35,7 @@ class DecimalDisplay {
     if( this.as_hex ) {
       for( var i = 0 ; i < this.signals.length ; i+= 8 ) {
         var values = parseInt(this.signals.slice(i,i+8).map( (x) => x.peek(tick) ).reverse().join(''),2);
-        hex += ALPHABET[Math.floor(values / 16)] + ALPHABET[values%16];
+        hex = ALPHABET[Math.floor(values / 16)] + ALPHABET[values%16] + hex;
       }
       this.textbox.value = '0x' + hex + '';
     }

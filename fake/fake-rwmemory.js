@@ -69,7 +69,7 @@ class FakeRWMemory {
 
     if( this.conn_enable.peek( tick ) ) {
       if( this.conn_init.peek( tick ) ) {
-        this.initial_bytes( this.initial_bytes );
+        this.init_bytes( this.initial_bytes );
       } else {
         var new_value = 0;
         for( var j = 0 ; j < 8 ; j++ ) {

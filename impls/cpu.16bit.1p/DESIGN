@@ -49,7 +49,7 @@
     11: opr <- mem[bx]
 
   Command:
-    000 xxxx xxxx: is system
+    000 xxxx xxxx: data manipulating
     000 ddxx xxxx: moving data
       dd: data direction
         00: opr -> ax
@@ -59,7 +59,7 @@
 
       ignore the others
         
-    001 xxxx xxxx: Control
+    001 xxxx xxxx: flow control
 
   
   
