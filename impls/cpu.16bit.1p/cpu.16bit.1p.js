@@ -128,7 +128,8 @@ class Cpu16Bit1P {
     this.load_from_ax = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00010', this.name + ".dd/from_ax" );
     this.load_from_bx = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00011', this.name + ".dd/from_bx" );
 
-    this.cmd_is_dm = CreateByMask( this.alias_cmd, this.alias_n_cmd, '000', this.name + ".cmd/sys" );
+    this.cmd_is_dm = CreateByMask( this.alias_cmd, this.alias_n_cmd, '000', this.name + ".cmd/dd" );
+    this.cmd_is_to_mem = CreateByMask( this.alias_cmd, this.alias_n_cmd, '0001', this.name + ".dd/mem" );
 
   }
 
@@ -144,8 +145,8 @@ class Cpu16Bit1P {
     this.ms_memory_addr.append( this.alias_is_decode, this.ms_memory_addr_when_decode.get_output_endpoints() );
 
     this.opr_add_1 = new Adder( this.opr, [SIG_ONE], this.name + ".opr+1" ).get_output_endpoints();
-    var dm_when_exec = CreateAnd( this.name + ".dm2mem/exec", this.alias_is_exec, this.cmd_is_dm );
-    var dm_when_store = CreateAnd( this.name = ".dm2mem/store", this.alias_is_store, this.cmd_is_dm );
+    var dm_when_exec = CreateAnd( this.name + ".dm2mem/exec", this.alias_is_exec, this.cmd_is_to_mem);
+    var dm_when_store = CreateAnd( this.name = ".dm2mem/store", this.alias_is_store, this.cmd_is_to_mem );
 
     this.ms_memory_en.append( this.alias_is_init, [this.falling_edge] );
 
