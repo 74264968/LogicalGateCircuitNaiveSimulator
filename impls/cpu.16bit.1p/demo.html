@@ -91,6 +91,7 @@
         [this.cpu.alias_addressing_mode, false, "cmd.am"],
         [this.cpu.alias_cmd, false, "cmd(11)" ],
         [this.cpu.alias_inst_opr, false, "inst_opr", true],
+        [this.cpu.opr, false, "opr", true],
       ]
     }
 
@@ -113,7 +114,7 @@
     var simulator = new Simulator( network, 0 );
     var tm = new TimeSequenceMonitor( mon_sigs, "timeseq", 768 );
     var screen = new PixelScreen( screen_sigs, "screen", SCREEN_WIDTH_IN_PX, SCREEN_HEIGHT_IN_PX, SCREEN_PIXEL_SIZE );
-    var loop = new MainLoop( simulator, 1, 2 );
+    var loop = new MainLoop( simulator, 1, 20 );
     loop.register_monitor( tm );
     loop.register_monitor( screen );
 

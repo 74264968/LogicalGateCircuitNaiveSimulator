@@ -42,6 +42,7 @@ class Cpu16Bit1P {
       [this.ms_inst, this.inst, this.n_inst, this.ms_inst_en] = CreateNetCrossing( this.INSTRUCTION_WIDTH, this.name + ".inst" );
       this.alias_cmd_cycle = this.inst.slice( this.CMD_CYCLE_SPAN[0], this.CMD_CYCLE_SPAN[1] );
       this.alias_addressing_mode = this.inst.slice( this.ADDRESS_MODE_SPAN[0], this.ADDRESS_MODE_SPAN[1] );
+      this.alias_n_addressing_mode = this.n_inst.slice( this.ADDRESS_MODE_SPAN[0], this.ADDRESS_MODE_SPAN[1] );
       this.alias_cmd = this.inst.slice( this.CMD_SPAN[0], this.CMD_SPAN[1] );
       this.alias_inst_opr = this.inst.slice( this.INSTRUCTION_OPR_SPAN[0], this.INSTRUCTION_OPR_SPAN[1] );
 
@@ -67,6 +68,7 @@ class Cpu16Bit1P {
     this.setup_memory_pins();
     this.setup_ip();
     this.setup_instruction();
+    this.setup_operand();
 
 
 
@@ -111,12 +113,23 @@ class Cpu16Bit1P {
     this.alias_is_store = this.state_machine.get_output_endpoint_of_is_state( this.STORE );
 
     this.alias_go_ahead = SIG_ONE; //TODO: change this to make JMP works
+
+    this.imm = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '00', this.name + ".a/imm" );
+    this.index_imm = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '01', this.name + ".a/index_imm" );
+    this.index_ax = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '10', this.name + ".a/index_ax" );
+    this.index_bx = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '11', this.name + ".a/index_bx" );
   }
 
   setup_memory_pins() {
-    this.ms_memory_addr.append( 
-      this.state_machine.get_output_endpoint_of_is_state( this.FETCH ),
-      this.ip);
+    this.ms_memory_addr.append( this.alias_is_fetch, this.ip );
+
+    this.ms_memory_addr_when_decode = new MultiSource( [], [], this.ADDR_WIDTH, this.name + ".addr/decode" );
+    {
+      this.ms_memory_addr_when_decode.append( this.index_imm, this.alias_inst_opr );
+      this.ms_memory_addr_when_decode.append( this.index_ax, this.ax );
+      this.ms_memory_addr_when_decode.append( this.index_bx, this.bx );
+    }
+    this.ms_memory_addr.append( this.alias_is_decode, this.ms_memory_addr_when_decode.get_output_endpoints() );
   }
 
   setup_ip() {
@@ -128,6 +141,7 @@ class Cpu16Bit1P {
       this.simple_next_ip = new Adder( this.ip, [SIG_ZERO, SIG_ZERO, SIG_ONE], this.name + ".ip+4" ).get_output_endpoints();
 
       this.ms_new_ip.append( this.alias_go_ahead, this.simple_next_ip );
+      //TODO
     }
 
     this.ms_ip.append( this.alias_is_store, this.ms_new_ip.get_output_endpoints() );
@@ -141,6 +155,22 @@ class Cpu16Bit1P {
 
     this.ms_inst.append( this.alias_is_fetch, this.conn_memory_output );
     this.ms_inst_en.append( this.alias_is_fetch, [this.falling_edge] );
+  }
+
+  setup_operand() {
+    this.ms_opr.append( this.alias_is_init, [] );
+    this.ms_opr_en.append( this.alias_is_init, [this.falling_edge] );
+
+    this.ms_opr_when_decode = new MultiSource( [], [], this.OPERAND_WIDTH, this.name + ".ms_opr/decode" );
+    {
+      this.ms_opr_when_decode.append( this.imm, this.alias_inst_opr );
+      this.ms_opr_when_decode.append( this.index_imm, this.conn_memory_output );
+      this.ms_opr_when_decode.append( this.index_ax, this.conn_memory_output );
+      this.ms_opr_when_decode.append( this.index_bx, this.conn_memory_output );
+    }
+
+    this.ms_opr.append( this.alias_is_decode, this.ms_opr_when_decode.get_output_endpoints() ); 
+    this.ms_opr_en.append( this.alias_is_decode, [this.falling_edge] );
   }
 
 //  setup_intermediate_result( ) {
