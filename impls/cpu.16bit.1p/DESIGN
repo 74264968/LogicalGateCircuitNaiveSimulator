@@ -36,28 +36,30 @@
 
 *** Instructions ***
 
-  Addressing Mode:
-    00: OPR <- imm
-    01: OPR <- mem[imm]
-    10: OPR <- mem[AX]
-    11: OPR <- mem[BX]
+  cccaasss ddxxxxxx xxxxxxxx xxxxxxxx
+       ^^^^^^^^^^^^
+         command
+
+  ccc: cycles
+
+  aa: Addressing Mode:
+    00: opr <- imm
+    01: opr <- mem[imm]
+    10: opr <- mem[ax]
+    11: opr <- mem[bx]
 
   Command:
-    1xxx xxxx xdd: Arithemetic 
+    000 xxxx xxxx: is system
+    000 ddxx xxxx: moving data
+      dd: data direction
+        00: opr -> ax
+        01: opr -> bx
+        10: ax -> mem[opr]
+        11: bx -> mem[opr]
 
-    00xx xxxx xdd: Data Manipulating
-      000x xxxx xdd: ?X <- inter (MOV)
-      001x xxxx xdd: ?X -> mem[inter]
-        dd: destination
-          00: no use
-          01: AX
-          10: BX
-          11: no use
+      ignore the others
         
-    01xx xxxx x00: Control
-      0100 xxxx x00: JMP
-      0101 xxxx x00: JNZ
-      0110 xxxx x00: JZ
+    001 xxxx xxxx: Control
 
   
   

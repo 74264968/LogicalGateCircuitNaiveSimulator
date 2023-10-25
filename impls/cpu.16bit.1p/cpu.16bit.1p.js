@@ -44,6 +44,7 @@ class Cpu16Bit1P {
       this.alias_addressing_mode = this.inst.slice( this.ADDRESS_MODE_SPAN[0], this.ADDRESS_MODE_SPAN[1] );
       this.alias_n_addressing_mode = this.n_inst.slice( this.ADDRESS_MODE_SPAN[0], this.ADDRESS_MODE_SPAN[1] );
       this.alias_cmd = this.inst.slice( this.CMD_SPAN[0], this.CMD_SPAN[1] );
+      this.alias_n_cmd = this.n_inst.slice( this.CMD_SPAN[0], this.CMD_SPAN[1] );
       this.alias_inst_opr = this.inst.slice( this.INSTRUCTION_OPR_SPAN[0], this.INSTRUCTION_OPR_SPAN[1] );
 
       // operand
@@ -53,8 +54,8 @@ class Cpu16Bit1P {
       [this.ms_ires, this.ires, this.n_ires, this.ms_ires_en] = CreateNetCrossing( this.OPERAND_WIDTH, this.name + ".ires" );
 
       // registers
-      [this.mx_ax, this.ax, this.n_ax, this.ms_ax_en] = CreateNetCrossing( this.OPERAND_WIDTH, this.name + ".ax" );
-      [this.mx_bx, this.bx, this.n_bx, this.ms_bx_en] = CreateNetCrossing( this.OPERAND_WIDTH, this.name + ".bx" );
+      [this.ms_ax, this.ax, this.n_ax, this.ms_ax_en] = CreateNetCrossing( this.OPERAND_WIDTH, this.name + ".ax" );
+      [this.ms_bx, this.bx, this.n_bx, this.ms_bx_en] = CreateNetCrossing( this.OPERAND_WIDTH, this.name + ".bx" );
     }
 
 
@@ -69,6 +70,8 @@ class Cpu16Bit1P {
     this.setup_ip();
     this.setup_instruction();
     this.setup_operand();
+    this.setup_intermediate_result();
+    this.setup_registers();
 
 
 
@@ -114,10 +117,19 @@ class Cpu16Bit1P {
 
     this.alias_go_ahead = SIG_ONE; //TODO: change this to make JMP works
 
+
     this.imm = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '00', this.name + ".a/imm" );
     this.index_imm = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '01', this.name + ".a/index_imm" );
     this.index_ax = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '10', this.name + ".a/index_ax" );
     this.index_bx = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '11', this.name + ".a/index_bx" );
+
+    this.load_to_ax = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00000', this.name + ".dd/to_ax" );
+    this.load_to_bx = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00001', this.name + ".dd/to_bx" );
+    this.load_from_ax = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00010', this.name + ".dd/from_ax" );
+    this.load_from_bx = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00011', this.name + ".dd/from_bx" );
+
+    this.cmd_is_system = CreateByMask( this.alias_cmd, this.alias_n_cmd, '000', this.name + ".cmd/sys" );
+
   }
 
   setup_memory_pins() {
@@ -171,6 +183,35 @@ class Cpu16Bit1P {
 
     this.ms_opr.append( this.alias_is_decode, this.ms_opr_when_decode.get_output_endpoints() ); 
     this.ms_opr_en.append( this.alias_is_decode, [this.falling_edge] );
+  }
+
+  setup_intermediate_result( ) {
+    this.ms_ires.append( this.alias_is_init, [] );
+    this.ms_ires_en.append( this.alias_is_init, [this.falling_edge] );
+
+    this.ms_ires_when_exec = new MultiSource( [], [], this.OPERAND_WIDTH, this.name + ".ms_ires/exec" );
+    {
+      this.ms_ires_when_exec.append( this.cmd_is_system, this.opr );
+    }
+    this.ms_ires.append( this.alias_is_exec, this.ms_ires_when_exec.get_output_endpoints() );
+    this.ms_ires_en.append( this.alias_is_exec, [this.falling_edge] );
+
+  }
+
+  setup_registers( ) {
+    //AX
+    this.ms_ax.append( this.alias_is_init, [] );
+    this.ms_ax_en.append( this.alias_is_init, [this.falling_edge] );
+
+    this.ms_ax.append( this.alias_is_store, this.ires );
+    this.ms_ax_en.append( CreateAnd( this.name + '.to_ax', this.alias_is_store, this.load_to_ax ), [this.falling_edge] );
+
+    //BX
+    this.ms_bx.append( this.alias_is_init, [] );
+    this.ms_bx_en.append( this.alias_is_init, [this.falling_edge] );
+
+    this.ms_bx.append( this.alias_is_store, this.ires );
+    this.ms_bx_en.append( CreateAnd( this.name + '.to_bx', this.alias_is_store, this.load_to_bx ), [this.falling_edge] );
   }
 
 //  setup_intermediate_result( ) {
@@ -305,12 +346,16 @@ class Cpu16Bit1P {
       this.EXECS.push( "EXEC_" + i );
     }
     this.STORE = "STORE";
-    const events = [ this.start, ...cycle_endpoints_lsb2msb ];
+    this.END = "END";
+    this.is_stop = CreateByMask( this.alias_cmd, this.alias_n_cmd, '11111111111', this.name + ".stop" );
+    const events = [ this.start, this.is_stop, ...cycle_endpoints_lsb2msb ];
     const edges = [ 
-      [this.INIT, '1', this.FETCH],
+      [this.INIT, '10', this.FETCH],
       [this.FETCH, '', this.DECODE],
       [this.EXECS[0], '', this.STORE],
-      [this.STORE, '', this.FETCH],
+      [this.STORE, 'x0', this.FETCH],
+      [this.STORE, 'x1', this.END],
+      [this.END, '', this.END],
     ];
 
     for( var i = 0 ; i < (1<<cycle_endpoints_lsb2msb.length) ; i++ ) {
@@ -320,7 +365,7 @@ class Cpu16Bit1P {
         else mask += '0';
       }
 
-      var decode2exec= [this.DECODE, 'x' + mask, this.EXECS[i]];
+      var decode2exec= [this.DECODE, 'xx' + mask, this.EXECS[i]];
       edges.push( decode2exec);
       if( i > 0 ) {
         var exec2exec = [this.EXECS[i], '', this.EXECS[i-1]];

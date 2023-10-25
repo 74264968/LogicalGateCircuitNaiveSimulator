@@ -30,20 +30,17 @@
       this.start = new Signal(0, "start");
       this.cpu = new Cpu16Bit1P( this.clock, this.reset, this.start, "cpu" );
       var initial_bytes = [
-        parseInt('00100000'.split('').reverse().join(''),2),0,1,2,
+      //cccaasss   ddxxxxxx ...
+       '00000000','00000000', 0xaa, 0, // move 0xaa -> ax
+       '00000000','01000000', 0xbb, 0, // move 0xbb -> bx
+       '00000111','11111111', 0, 0, //EXIT
+      ].map( (x) => {
+        if( typeof(x) === 'string' ) {
+          return parseInt(x.split('').reverse().join(''),2)
+        } else { return x; }
+      } );
 
-        parseInt('01001000'.split('').reverse().join(''),2),
-        parseInt('00000001'.split('').reverse().join(''),2),
-        3,4,
 
-        parseInt('10010000'.split('').reverse().join(''),2),
-        parseInt('00000010'.split('').reverse().join(''),2),
-        5,6,
-
-        parseInt('10111000'.split('').reverse().join(''),2),0,7,8,
-      ];
-      initial_bytes = initial_bytes.concat( initial_bytes );
-      initial_bytes = initial_bytes.concat( initial_bytes );
 
       this.mem = new FakeRWMemory( this.cpu.ADDR_WIDTH, this.cpu.MEM_READ_WIDTH / 8, "64k.mem", initial_bytes ); 
       this.cpu.connect_memory( this.mem );
@@ -75,6 +72,7 @@
         this.sm.get_output_endpoint_of_is_state( "DECODE" ),
         this.sm.get_output_endpoint_of_is_state( "EXEC_0" ),
         this.sm.get_output_endpoint_of_is_state( "STORE" ),
+        this.sm.get_output_endpoint_of_is_state( "END" ),
       ];
     }
 
@@ -92,6 +90,7 @@
         [this.cpu.alias_cmd, false, "cmd(11)" ],
         [this.cpu.alias_inst_opr, false, "inst_opr", true],
         [this.cpu.opr, false, "opr", true],
+        [this.cpu.ires, false, "ires", true],
       ]
     }
 
@@ -155,10 +154,10 @@
   <style>
     body {margin:0;padding:0;font-size:0}
     .container {display: flex;flex-direction: column; height:100vh;}
-    .top {width:100%;height:28px;font-size:12px;border-bottom:1px solid #aa3;background-color:#eeb;padding:4px;overflow-x:scroll;}
-    .middle{display: flex; flex-direction: row; width: 100vw; flex: 1;margin-bottom:0;overflow-y:scroll;}
-    .start {width:200px; background-color:#eeb;padding:8px;border-right:1px solid #aa3;overflow-y:scroll;}
-    .main{flex: 1;padding:4px;flex-direction:column;overflow-y:scroll;}
+    .top {width:100%;height:28px;font-size:12px;border-bottom:1px solid #aa3;background-color:#eeb;padding:4px;overflow-x:auto;overflow-y:hidden;}
+    .middle{display: flex; flex-direction: row; width: 100vw; flex: 1;margin-bottom:0;overflow-y:auto;}
+    .start {width:200px; background-color:#eeb;padding:8px;border-right:1px solid #aa3;overflow-y:auto;}
+    .main{flex: 1;padding:4px;flex-direction:column;overflow-y:auto;}
     .bottom{height:28px;padding: 8px;background-color:#dd8;text-align:center;border-top:1px solid #bb3;}
     .labeled-value {display:flex;flex-direction:row;height:25px;}
     .labeled-value label{font-size:10px;width:100px;text-align:left;height:14px;margin-right:4px;text-overflow:ellipsis;overflow:hidden}
