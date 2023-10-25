@@ -23,7 +23,7 @@ class TimeSequenceMonitor {
     var ctx = this.canvas.getContext("2d");
 
 
-    const LABEL_PADDING = 12;
+    const LABEL_PADDING = 0;
     const LABEL_WIDTH_IN_PX = 256;
     const LINE_HEIGHT = 18;
     const TICK_WIDTH = 7;

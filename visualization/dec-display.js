@@ -14,6 +14,7 @@ class DecimalDisplay {
     }
     var container = document.createElement("div");
     {
+      container.setAttribute("class", "labeled-value");
       container.appendChild( label );
       container.appendChild( textbox );
     }
