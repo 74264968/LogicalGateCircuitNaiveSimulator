@@ -15,7 +15,7 @@
       prepare operand according addressing mode
 
   * EXEC xxx:
-      
+      EXEC 0: result -> intermediate result
 
   * STORE:
       write back result to dst
@@ -46,8 +46,8 @@
     1xxx xxxx xdd: Arithemetic 
 
     00xx xxxx xdd: Data Manipulating
-      000x xxxx xdd: ?X <- OPR (MOV)
-      001x xxxx xdd: ?X -> mem[OPR]
+      000x xxxx xdd: ?X <- inter (MOV)
+      001x xxxx xdd: ?X -> mem[inter]
         dd: destination
           00: no use
           01: AX

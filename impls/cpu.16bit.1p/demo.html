@@ -2,10 +2,6 @@
 <html>
 <head>
   <style>
-    button {border:1px solid #338; padding:4px;}
-    button:hover {border:1px solid #996;cursor:pointer}
-    .active {background-color: #33aa44; color:#eef}
-    .inactive {background-color: none;}
   </style>
   <script language="javascript" src="/core/fundamental/gates.js"></script>
   <script language="javascript" src="/core/fundamental/simulating.js"></script>
@@ -20,79 +16,126 @@
   <script language="javascript" src="/visualization/tracer.js"></script>
   <script language="javascript" src="/scaffold/helpers.js"></script>
   <script language="javascript" src="/fake/fake-rwmemory.js"></script>
+  <script language="javascript" src="/impls/build_complex.js"></script>
   <script language="javascript" src="./cpu.16bit.1p.js"></script>
   <script language="javascript">
+  const SCREEN_PIXEL_SIZE = 4;
+  const SCREEN_WIDTH_IN_PX = 160 * SCREEN_PIXEL_SIZE;
+  const SCREEN_HEIGHT_IN_PX = 80 * SCREEN_PIXEL_SIZE;
+  //write the network here
+  class Impl {
+    constructor( clock ) {
+      this.clock = clock;
+      this.reset = new Signal(0, "reset");
+      this.start = new Signal(0, "start");
+      this.cpu = new Cpu16Bit1P( this.clock, this.reset, this.start, "cpu" );
+      var initial_bytes = [
+        parseInt('00100000'.split('').reverse().join(''),2),0,1,2,
+
+        parseInt('01001000'.split('').reverse().join(''),2),
+        parseInt('00000001'.split('').reverse().join(''),2),
+        3,4,
+
+        parseInt('10010000'.split('').reverse().join(''),2),
+        parseInt('00000010'.split('').reverse().join(''),2),
+        5,6,
+
+        parseInt('10111000'.split('').reverse().join(''),2),0,7,8,
+      ];
+      initial_bytes = initial_bytes.concat( initial_bytes );
+      initial_bytes = initial_bytes.concat( initial_bytes );
+
+      this.mem = new FakeRWMemory( this.cpu.ADDR_WIDTH, this.cpu.MEM_READ_WIDTH / 8, "64k.mem", initial_bytes ); 
+      this.cpu.connect_memory( this.mem );
+      this.sm = this.cpu.state_machine;
+      window.cpu = this.cpu;
+    }
+
+    get_network( ) {
+      return this.cpu.network.concat(this.mem.network);
+    }
+
+    get_switches( ) {
+      return [
+        [this.reset, 0],
+        [this.start, 0],
+      ];
+    }
+    
+    get_variables( ) {
+      return [
+        ["var", [new Signal(1,"a var")]]
+      ];
+    }
+
+    get_watch_sigs( ) {
+      return [
+        this.sm.get_output_endpoint_of_is_state( "INIT" ),
+        this.sm.get_output_endpoint_of_is_state( "FETCH" ),
+        this.sm.get_output_endpoint_of_is_state( "DECODE" ),
+        this.sm.get_output_endpoint_of_is_state( "EXEC_0" ),
+        this.sm.get_output_endpoint_of_is_state( "STORE" ),
+      ];
+    }
+
+    get_watch_values( ) {
+      return [
+        [this.cpu.ms_memory_addr.get_output_endpoints(), false, "mem.addr", true],
+        [this.cpu.ms_memory_input.get_output_endpoints(), false, "mem.input", true],
+        [this.cpu.conn_memory_output, false, "mem.out", true],
+        [this.cpu.ip, false, "IP", true],
+        [this.cpu.ax, false, "AX", true],
+        [this.cpu.bx, false, "BX", true],
+        [this.cpu.inst, false, "instruction", true],
+        [this.cpu.alias_cmd_cycle, false, "cmd.cycle"],
+        [this.cpu.alias_addressing_mode, false, "cmd.am"],
+        [this.cpu.alias_cmd, false, "cmd(11)" ],
+        [this.cpu.alias_inst_opr, false, "inst_opr", true],
+      ]
+    }
+
+    
+    get_screen_sigs( ) {
+      return [this.clock];
+    }
+
+  }
+
   function Onload( ) {
     var clk = new Clock( 1, 50 );
-    var mon_sigs = [];
-    var simulator = new Simulator( [], 0 );
+    var impl = new Impl( clk );
+    var mon_sigs = [clk].concat(impl.get_watch_sigs());
+    var screen_sigs = impl.get_screen_sigs();
+    var network = [clk].concat( impl.get_network() );
+    var switches = impl.get_switches();
+    var input_vars = impl.get_variables();
+    var watch_vars = impl.get_watch_values();
+    var simulator = new Simulator( network, 0 );
     var tm = new TimeSequenceMonitor( mon_sigs, "timeseq", 768 );
-    //var screen = new PixelScreen( sigs, "screen", 64, 64, 8 );
-    var loop = new MainLoop( simulator, 1, 10 );
-    var reset = CreateInputSwitch( 0, "signalPanel", "reset", simulator );
-    var start = CreateInputSwitch( 0, "signalPanel", "start", simulator );
-    var cpu = new Cpu16Bit1P( clk, reset, start, "cpu" );
-    var initial_bytes = [
-      parseInt('00100000'.split('').reverse().join(''),2),0,1,2,
-
-      parseInt('01001000'.split('').reverse().join(''),2),
-      parseInt('00000001'.split('').reverse().join(''),2),
-      3,4,
-
-      parseInt('10010000'.split('').reverse().join(''),2),
-      parseInt('00000010'.split('').reverse().join(''),2),
-      5,6,
-
-      parseInt('10111000'.split('').reverse().join(''),2),0,7,8,
-    ];
-    initial_bytes = initial_bytes.concat( initial_bytes );
-    initial_bytes = initial_bytes.concat( initial_bytes );
-    var mem = new FakeRWMemory( cpu.ADDR_WIDTH, cpu.MEM_READ_WIDTH / 8, "64k.mem", initial_bytes ); 
-    cpu.connect_memory( mem );
-    window.cpu = cpu;
-
-    Add2Simulator( simulator, cpu.network );
-    Add2Simulator( simulator, mem.network );
+    var screen = new PixelScreen( screen_sigs, "screen", SCREEN_WIDTH_IN_PX, SCREEN_HEIGHT_IN_PX, SCREEN_PIXEL_SIZE );
+    var loop = new MainLoop( simulator, 1, 2 );
     loop.register_monitor( tm );
-    loop.register_monitor( new DecimalDisplay( cpu.conn_addressing_mode, false, "controlPins", "am" ) );
-    loop.register_monitor( new DecimalDisplay( [cpu.addressing_mode['imm']], false, "controlPins", "am.imm" ) );
-    loop.register_monitor( new DecimalDisplay( [cpu.addressing_mode['index']], false, "controlPins", "am.index" ) );
-    loop.register_monitor( new DecimalDisplay( [cpu.addressing_mode['index_ax']], false, "controlPins", "am.index_ax" ) );
-    loop.register_monitor( new DecimalDisplay( [cpu.addressing_mode['index_bx']], false, "controlPins", "am.index_bx" ) );
-    loop.register_monitor( new DecimalDisplay( [cpu.dst_ax], false, "controlPins", "dst_ax" ) );
-    loop.register_monitor( new DecimalDisplay( [cpu.dst_bx], false, "controlPins", "dst_bx" ) );
-    loop.register_monitor( new DecimalDisplay( cpu.conn_ax, false, "controlPins", "AX", true ) );
-    loop.register_monitor( new DecimalDisplay( cpu.conn_bx, false, "controlPins", "BX", true ) );
-    loop.register_monitor( new DecimalDisplay( cpu.IP.map( (x)=>x.get_output_endpoint() ), false, "digitPanel", "IP:" ) );
-    loop.register_monitor( new DecimalDisplay( cpu.simple_next_ip, false, "digitPanel", "IP+4: " ) );
-    loop.register_monitor( new DecimalDisplay( cpu.conn_IP_input, false, "digitPanel", "next_IP: " ) );
-    loop.register_monitor( new DecimalDisplay( cpu.select_next_ip, false, "digitPanel", "selected_IP: " ) );
-    loop.register_monitor( new DecimalDisplay( cpu.ms_memory_addr.get_output_endpoints(), false, "digitPanel", "mem_read_addr: " ) );
-    loop.register_monitor( new DecimalDisplay( cpu.instruction_input, false, "digitPanel", "instruction_input: " ) );
-    loop.register_monitor( new DecimalDisplay( cpu.instruction.map( (x) => x.get_output_endpoint() ), false, "digitPanel", "instruction: ", true ) );
-    loop.register_monitor( new DecimalDisplay( cpu.instruction.slice(0,3).map( (x) => x.get_output_endpoint() ), false, "digitPanel", "instruction(cycle): " ) );
-    loop.register_monitor( new DecimalDisplay( cpu.conn_cmd_cycle, false, "digitPanel", "cycle: " ) );
-    loop.register_monitor( new DecimalDisplay( cpu.conn_i_operand, false, "digitPanel", "i_operand: ", true ) );
-    //loop.register_monitor( screen );
-    var sm = cpu.state_machine;
+    loop.register_monitor( screen );
+
+    switches.map( (x) => {
+      new InputSwitch( x[0], "op_top", "active", "inactive", x[1] );
+    } );
+
+    input_vars.map( (x) => {
+      new InputDigits( x[1], "vars", x[0] );
+    } );
+
+    watch_vars.map( (x) => {
+      var tmp = new DecimalDisplay( x[0], x[1], "watching", x[2], x[3] )
+      loop.register_monitor( tmp );
+    } );
+
     function update( )
     {
       loop.update();
     }
-    //monitoring cpu running state
-    {
-    mon_sigs.push( clk );
-    mon_sigs.push( cpu.ip_enable );
-    mon_sigs.push( sm.get_output_endpoint_of_is_state( "INIT" ));
-    mon_sigs.push( sm.get_output_endpoint_of_is_state( "FETCH" ));
-    mon_sigs.push( sm.get_output_endpoint_of_is_state( "DECODE"));
-    for( var i = 0 ; i < 8 ; i++ ) {
-      mon_sigs.push( sm.get_output_endpoint_of_is_state( "EXEC_" + i ));
-    }
-    mon_sigs.push( sm.get_output_endpoint_of_is_state( "STORE" ));
-    cpu.instruction.slice(0,8).map( (x) => { mon_sigs.push( x.get_output_endpoint() ) } );
-    }
     setInterval( update, loop.frame_in_ms );
+
     loop.start();
 
     var btnResume = document.getElementById("btnResume");
@@ -101,16 +144,63 @@
     var btnStop = document.getElementById("btnStop");
     btnStop.onclick = function() { loop.pause(); }
 
+    var btnStep = document.getElementById("btnStep");
+    btnStep.onclick = function() { loop.step(); }
+    var btnStep_10 = document.getElementById("btnStep_10");
+    btnStep_10.onclick = function() { loop.step(10); }
   }
+
   </script>
+  <style>
+    body {margin:0;padding:0;font-size:0}
+    .container {display: flex;flex-direction: column; height:100vh;}
+    .top {width:100%;height:28px;font-size:12px;border-bottom:1px solid #aa3;background-color:#eeb;padding:4px;overflow-x:scroll;}
+    .middle{display: flex; flex-direction: row; width: 100vw; flex: 1;margin-bottom:0;overflow-y:scroll;}
+    .start {width:200px; background-color:#eeb;padding:8px;border-right:1px solid #aa3;overflow-y:scroll;}
+    .main{flex: 1;padding:4px;flex-direction:column;overflow-y:scroll;}
+    .bottom{height:28px;padding: 8px;background-color:#dd8;text-align:center;border-top:1px solid #bb3;}
+    .labeled-value {display:flex;flex-direction:row;height:25px;}
+    .labeled-value label{font-size:10px;width:100px;text-align:left;height:14px;margin-right:4px;text-overflow:ellipsis;overflow:hidden}
+    .labeled-value input {height: 14px; font-size: 10px;background-color:#eea;border:1px solid #aaa;}
+    #screen{border:1px solid #eee}
+    h3 {font-size:16px;}
+    button {border:1px solid #338; padding:4px;margin-right:4px;}
+    button:hover {border:1px solid #996;cursor:pointer}
+    .active {background-color: #33aa44; color:#eef}
+    .inactive {background-color: none;}
+  </style>
 </head>
 <body onload="javascript:Onload()">
+  <div class="container">
+    <div class="top" id="op_top">
+    </div>
+    <div class="middle">
+      <div class="start">
+        <h3>Variables</h3>
+        <div id="vars"></div>
+        <hr />
+        <h3>Watching</h3>
+        <div id="watching"></div>
+      </div>
+      <div class="main">
+        <canvas id="screen"></canvas>
+        <div style="height:10px"></div>
+        <canvas id="timeseq"></canvas>
+      </div>
+    </div>
+    <div class="bottom">
+      <button id="btnResume"> resume </button>
+      <button id="btnStop"> stop </button>
+      <button id="btnStep"> step </button>
+      <button id="btnStep_10"> step 10 </button>
+    </div>
+  </div>
+  <!--
   <div>
   <button id="btnResume">resume</button>
   <button id="btnStop">stop</button>
   </div>
   <div id="signalPanel" style="padding: 20px"></div>
-  <div id="controlPins" style="padding: 20px;display:inline-block"></div>
   <div id="digitPanel" style="padding: 20px"></div>
   <div>
   <canvas id="screen"></canvas>
@@ -118,5 +208,6 @@
   <div>
   <canvas id="timeseq"></canvas>
   </div>
+  -->
 </body>
 </html>
