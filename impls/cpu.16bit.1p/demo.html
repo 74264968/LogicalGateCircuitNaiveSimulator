@@ -31,11 +31,13 @@
       this.cpu = new Cpu16Bit1P( this.clock, this.reset, this.start, "cpu" );
       var initial_bytes = [
       //cccaasss   ddxxxxxx ...
-      "00000100", "00000000", 0, 4, // cycle 1, opr <- imm, moving data, res->ax, iopr 1024
-"00000100", "01000000", 0, 8, // cycle 1, opr <- imm, moving data, res->bx, iopr 2048
-"00000100", "10000000", 0, 8, // cycle 1, opr <- imm, moving data, ax ->mem[opr], iopr 2048
-"00000100", "11000000", 0, 4, // cycle 1, opr <- imm, moving data, bx ->mem[opr], iopr 1024
-"00000101", "01000000", 2, 0, // cycle 1, opr <- imm, end, res->bx, iopr 2
+      "00000100", "00000000", 254, 255, // cycle 1, opr <- imm, moving data, default, res->ax, iopr 65534
+"00000100", "01000000", 253, 255, // cycle 1, opr <- imm, moving data, default, res->bx, iopr 65533
+"00000100", "10000000", 0, 4, // cycle 1, opr <- imm, moving data, default, ax ->mem[opr], iopr 1024
+"00000100", "11000000", 0, 8, // cycle 1, opr <- imm, moving data, default, bx ->mem[opr], iopr 2048
+"00000110", "00000001", 0, 4, // cycle 1, opr <- imm, caculation(110), ADD (res = AX + OPR), res->ax, iopr 1024
+"00000110", "01000001", 0, 4, // cycle 1, opr <- imm, caculation(110), ADD (res = AX + OPR), res->bx, iopr 1024
+"00000011", "01000000", 0, 4, // cycle 1, opr <- imm, end, end, res->bx, iopr 1024
       ].map( (x) => {
         if( typeof(x) === 'string' ) {
           return parseInt(x.split('').reverse().join(''),2)
@@ -80,8 +82,8 @@
         this.sm.get_output_endpoint_of_is_state( "STORE" ),
         this.sm.get_output_endpoint_of_is_state( "END" ),
         this.cpu.cmd_is_dm,
-        this.cpu.dm_load_to_ax,
-        this.cpu.dm_load_to_bx,
+        this.cpu.to_ax,
+        this.cpu.to_bx,
         this.cpu.cmd_is_flow_control,
         this.cpu.dm_to_mem,
       ];
@@ -95,6 +97,8 @@
         [this.cpu.ip, false, "IP", true],
         [this.cpu.ax, false, "AX", true],
         [this.cpu.bx, false, "BX", true],
+        [this.cpu.carry, false, 'C', true],
+        [this.cpu.borrow, false, 'B', true],
         [this.cpu.inst, false, "instruction", true],
         [this.cpu.alias_cmd_cycle, false, "cmd.cycle"],
         [this.cpu.alias_addressing_mode, false, "cmd.am"],

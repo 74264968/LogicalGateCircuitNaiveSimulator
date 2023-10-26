@@ -59,9 +59,9 @@
       ignore the others
         
     001 xxxx xxxx: flow control
-    x1x ddxx xxxx: caculation
+    11x ddxx xxxx: caculation
 
-    101 xxxx xxxx: END
+    011 xxxx xxxx: END
 
   
   

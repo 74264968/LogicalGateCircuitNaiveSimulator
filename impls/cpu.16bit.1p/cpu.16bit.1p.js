@@ -56,6 +56,9 @@ class Cpu16Bit1P {
       // registers
       [this.ms_ax, this.ax, this.n_ax, this.ms_ax_en] = CreateNetCrossing( this.OPERAND_WIDTH, this.name + ".ax" );
       [this.ms_bx, this.bx, this.n_bx, this.ms_bx_en] = CreateNetCrossing( this.OPERAND_WIDTH, this.name + ".bx" );
+
+      [this.ms_carry, this.carry, this.n_carry, this.ms_carry_en] = CreateNetCrossing( 1, this.name + ".flag/carry" );
+      [this.ms_borrow, this.borrow, this.n_borrow, this.ms_borrow_en] = CreateNetCrossing( 1, this.name + ".flag/borrow" );
     }
 
 
@@ -128,17 +131,22 @@ class Cpu16Bit1P {
     //system
     this.cmd_is_dm = CreateByMask( ...cmd_pair, '100', this.name + ".cmd/dd" );
     this.cmd_is_flow_control = CreateByMask( ...cmd_pair, '001', this.name + ".cmd/fc" );
-    this.cmd_is_caculation = CreateByMask( ...cmd_pair, 'x1x', this.name + ".cmd/cc" );
+    this.cmd_is_caculation = CreateByMask( ...cmd_pair, '11x', this.name + ".cmd/cc" );
 
     // destination
-    this.dm_load_to_ax = CreateByMask( ...cmd_pair, '10000', this.name + ".dd/to_ax" );
-    this.dm_load_to_bx = CreateByMask( ...cmd_pair, '10001', this.name + ".dd/to_bx" );
+    this.to_ax = CreateByMask( ...cmd_pair, '1xx00', this.name + ".dd/to_ax" );
+    this.to_bx = CreateByMask( ...cmd_pair, '1xx01', this.name + ".dd/to_bx" );
     this.dm_load_from_ax = CreateByMask( ...cmd_pair, '10010', this.name + ".dd/from_ax" );
     this.dm_load_from_bx = CreateByMask( ...cmd_pair, '10011', this.name + ".dd/from_bx" );
 
     this.dm_to_mem = CreateByMask( ...cmd_pair, '1001', this.name + ".dd/mem" );
 
     // commands
+    // arithemetic
+    this.cmd_is_add = CreateByMask( ...cmd_pair, '110 0x 000001', this.name + ".cmd/add" );
+    this.cmd_is_sub = CreateByMask( ...cmd_pair, '110 0x 000010', this.name + ".cmd/sub" );
+
+    this.cmd_is_jump = CreateByMask( ...cmd_pair, '001', this.name + "./cmd/jump" );
 
   }
 
@@ -226,6 +234,20 @@ class Cpu16Bit1P {
     this.ms_ires_when_exec = new MultiSource( [], [], this.OPERAND_WIDTH, this.name + ".ms_ires/exec" );
     {
       this.ms_ires_when_exec.append( this.cmd_is_dm, this.opr );
+
+      //calculations
+      //ADD
+      {
+        var add_ax_opr = new Adder( this.ax, this.opr, this.name + ".adder" );
+        this.ms_ires_when_exec.append( this.cmd_is_add, add_ax_opr.get_output_endpoints() );
+        this.ms_carry.append( this.cmd_is_add, [add_ax_opr.get_carry_endpoint()] );
+      }
+      //SUB
+      {
+        var sub_ax_opr = new Subtractor( this.ax, this.opr, this.name + ".subtractor" );
+        this.ms_ires_when_exec.append( this.cmd_is_sub, sub_ax_opr.get_output_endpoints() );
+        this.ms_borrow.append( this.cmd_is_sub, [sub_ax_opr.get_borrow_endpoint()] );
+      }
     }
     this.ms_ires.append( this.alias_is_exec, this.ms_ires_when_exec.get_output_endpoints() );
     this.ms_ires_en.append( this.alias_is_exec, [this.falling_edge] );
@@ -238,15 +260,18 @@ class Cpu16Bit1P {
     this.ms_ax_en.append( this.alias_is_init, [this.falling_edge] );
 
     this.ms_ax.append( this.alias_is_store, this.ires );
-    this.ms_ax_en.append( CreateAnd( this.name + '.to_ax', this.alias_is_store, this.dm_load_to_ax ), [this.falling_edge] );
+    this.ms_ax_en.append( CreateAnd( this.name + '.to_ax', this.alias_is_store, this.to_ax ), [this.falling_edge] );
 
     //BX
     this.ms_bx.append( this.alias_is_init, [] );
     this.ms_bx_en.append( this.alias_is_init, [this.falling_edge] );
 
     this.ms_bx.append( this.alias_is_store, this.ires );
-    this.ms_bx_en.append( CreateAnd( this.name + '.to_bx', this.alias_is_store, this.dm_load_to_bx ), [this.falling_edge] );
+    this.ms_bx_en.append( CreateAnd( this.name + '.to_bx', this.alias_is_store, this.to_bx ), [this.falling_edge] );
 
+
+    this.ms_carry_en.append( this.alias_is_store, [this.falling_edge] );
+    this.ms_borrow_en.append( this.alias_is_store, [this.falling_edge] );
   }
 
 //  setup_intermediate_result( ) {
@@ -382,7 +407,7 @@ class Cpu16Bit1P {
     }
     this.STORE = "STORE";
     this.END = "END";
-    this.is_stop = CreateByMask( this.alias_cmd, this.alias_n_cmd, '10111111111', this.name + ".stop" );
+    this.is_stop = CreateByMask( this.alias_cmd, this.alias_n_cmd, '01111111111', this.name + ".stop" );
     const events = [ this.start, this.is_stop, ...cycle_endpoints_lsb2msb ];
     const edges = [ 
       [this.INIT, '10', this.FETCH],

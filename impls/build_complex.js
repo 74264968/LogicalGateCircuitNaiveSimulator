@@ -32,6 +32,7 @@ function Connect( connectors, others, check ) {
 
 function CreateByMask( vals, nvals, mask_str, name ) {
   console.assert( vals.length == nvals.length );
+  mask_str = mask_str.replaceAll(' ', '');
   var res = new AndGate( name );
   for( var i = 0 ; i < mask_str.length ; i++ ) {
     if( mask_str[i] == '1' ) res.inputs.push( vals[i] );

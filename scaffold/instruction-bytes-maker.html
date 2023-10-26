@@ -89,6 +89,7 @@
 
 
       add.onclick = function() {
+        if( system.selectedOptions[0].value != cmd.selectedOptions[0].getAttribute("system-prefix") ) {alert('bad set'); return;}
         var low = operand.value % 256;
         var high = operand.value >> 8;
         var body = '"' + cycle.value + am.value + system.value + '"';
@@ -101,6 +102,7 @@
         var comment = cycle.selectedOptions[0].text + ", ";
             comment+= am.selectedOptions[0].text + ", ";
             comment+= system.selectedOptions[0].text + ", ";
+            comment+= cmd.selectedOptions[0].text + ", ";
             comment+= destination.selectedOptions[0].text + ", ";
             comment+= 'iopr ' + operand.value;
 
@@ -131,9 +133,10 @@
 
   <select id="system">
     <option value="100">moving data</option>
+    <option value="110">caculation(110)</option>
+    <option value="111">caculation(111)</option>
     <option value="001">flow control</option>
-    <option value="010">caculation(010)</option>
-    <option value="101">end</option>
+    <option value="011">end</option>
   </select>
 
   <select id="destination">
@@ -145,10 +148,11 @@
 
   <select id="cmd">
     <option value="000000" system-prefix="100">default</option>
-    <option value="000001" system-prefix="010">ADD (res = AX + OPR)</option>
+    <option value="000001" system-prefix="110">ADD (res = AX + OPR)</option>
+    <option value="000010" system-prefix="110">SUB (res = AX - OPR)</option>
     <option value="000001" system-prefix="001">JMP</option>
     <option value="000011" system-prefix="001">JZ</option>
-    <option value="000000" system-prefix="101">end</option>
+    <option value="000000" system-prefix="011">end</option>
   </select>
 
   <input id="operand" type="number" value="0"/>
