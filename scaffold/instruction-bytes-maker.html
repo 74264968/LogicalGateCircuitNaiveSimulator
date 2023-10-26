@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {font: 'Courier New';}
+    .aa_selected {border-top:1px solid black;border-bottom:2px solid black;}
+  </style>
+  <script>
+    function Onload() {
+      var hi = JSON.parse( window.localStorage.getItem('history') || "[]" );
+      var add = document.getElementById("add");
+
+      var cycle = document.getElementById("cycle");
+      var am = document.getElementById('am');
+      var system = document.getElementById('system');
+      var destination = document.getElementById('destination');
+      system.onchange = function() {
+        cmd.childNodes.forEach( (x) => {
+          if( x.tagName === 'OPTION' ) {
+            if( x.getAttribute('system-prefix') != system.selectedOptions[0].value ) {
+              x.setAttribute("disabled", "true");
+            } else {
+              x.removeAttribute("disabled");
+            }
+          }
+        } );
+      }
+      var operand = document.getElementById('operand');
+
+      var cmd = document.getElementById('cmd');
+
+      var holder = document.getElementById('instructions');
+      window.cycle = cycle;
+      window.holder = holder;
+      
+      var copy = document.getElementById('copy');
+      copy.onclick = function( ) {
+        console.log( instructions.innerText );
+        navigator.clipboard.writeText( instructions.innerText );
+      }
+
+
+      function insert( what ) {
+        var selects = document.getElementsByClassName('aa_selected');
+        var selected = null;
+        if( selects.length > 0 ) selected = selects[0];
+        var n = document.createElement('div');
+        var text = document.createElement('label');
+        var btn = document.createElement('div');
+        text.setAttribute('style', 'padding: 4px');
+        text.innerHTML = what;
+        btn.setAttribute('style', 'width:16px; background-color:#eee;');
+        btn.innerHTML = ' ';
+        btn.onclick = function( ) {
+          n.remove();
+          refresh();
+        }
+        n.setAttribute('style', 'display:flex');
+        n.append( btn );
+        n.append( text );
+        n.onclick = function( ) {
+          if( n.getAttribute('aa_selected') ) {
+            n.setAttribute('aa_selected', '' );
+            n.setAttribute('class', '' );
+          } else {
+            holder.childNodes.forEach( 
+              (x) => {x.setAttribute('aa_selected', '' );x.setAttribute('class','')}
+            );
+            n.setAttribute('aa_selected', 'yes' );
+            n.setAttribute('class', 'aa_selected' );
+          }
+        }
+        if( selected ) {
+          holder.insertBefore( n, selected );
+        } else {
+          holder.append( n );
+        }
+
+        refresh();
+      }
+
+      function refresh() {
+        var nh = [];
+        holder.childNodes.forEach( (x) => nh.push( x.children[1].innerHTML ) );
+        window.localStorage.setItem('history', JSON.stringify( nh ));
+      }
+
+      hi.map( (x) => insert(x) );
+
+
+      add.onclick = function() {
+        var low = operand.value % 256;
+        var high = operand.value >> 8;
+        var body = '"' + cycle.value + am.value + system.value + '"';
+            body+= ', ';
+            body+= '"' + destination.value + cmd.value + '"';
+            body+= ', ';
+            body+= low + ', ' + high;
+            body+= ',';
+
+        var comment = cycle.selectedOptions[0].text + ", ";
+            comment+= am.selectedOptions[0].text + ", ";
+            comment+= system.selectedOptions[0].text + ", ";
+            comment+= destination.selectedOptions[0].text + ", ";
+            comment+= 'iopr ' + operand.value;
+
+        insert( body + " // " + comment )
+      }
+    }
+  </script>
+</head>
+<body onload="javascript:Onload()">
+  <div style="display:flex">
+  <select id="cycle">
+    <option value="000">cycle 1</option>
+    <option value="100">cycle 2</option>
+    <option value="010">cycle 3</option>
+    <option value="110">cycle 4</option>
+    <option value="001">cycle 5</option>
+    <option value="101">cycle 6</option>
+    <option value="011">cycle 7</option>
+    <option value="111">cycle 8</option>
+  </select>
+
+  <select id="am">
+    <option value="00">opr &lt;- imm</option>
+    <option value="01">opr &lt;- mem[imm]</option>
+    <option value="10">opr &lt;- mem[ax]</option>
+    <option value="11">opr &lt;- mem[bx]</option>
+  </select>
+
+  <select id="system">
+    <option value="100">moving data</option>
+    <option value="001">flow control</option>
+    <option value="010">caculation(010)</option>
+    <option value="101">end</option>
+  </select>
+
+  <select id="destination">
+    <option value="00">res-&gt;ax</option>
+    <option value="01">res-&gt;bx</option>
+    <option value="10">ax -&gt;mem[opr]</option>
+    <option value="11">bx -&gt;mem[opr]</option>
+  </select>
+
+  <select id="cmd">
+    <option value="000000" system-prefix="100">default</option>
+    <option value="000001" system-prefix="010">ADD (res = AX + OPR)</option>
+    <option value="000001" system-prefix="001">JMP</option>
+    <option value="000011" system-prefix="001">JZ</option>
+    <option value="000000" system-prefix="101">end</option>
+  </select>
+
+  <input id="operand" type="number" value="0"/>
+
+  <button id="add">insert</button>
+</div>
+<hr />
+<div id="copy" style="height:20px;width:90px;background:#eee"></div>
+<div id="instructions"></div>
+</body>
+</html>

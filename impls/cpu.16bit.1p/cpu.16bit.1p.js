@@ -117,19 +117,28 @@ class Cpu16Bit1P {
 
     this.alias_go_ahead = SIG_ONE; //TODO: change this to make JMP works
 
-
+    // addressing mode
     this.imm = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '00', this.name + ".a/imm" );
     this.index_imm = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '01', this.name + ".a/index_imm" );
     this.index_ax = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '10', this.name + ".a/index_ax" );
     this.index_bx = CreateByMask( this.alias_addressing_mode, this.alias_n_addressing_mode, '11', this.name + ".a/index_bx" );
 
-    this.load_to_ax = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00000', this.name + ".dd/to_ax" );
-    this.load_to_bx = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00001', this.name + ".dd/to_bx" );
-    this.load_from_ax = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00010', this.name + ".dd/from_ax" );
-    this.load_from_bx = CreateByMask( this.alias_cmd, this.alias_n_cmd, '00011', this.name + ".dd/from_bx" );
+    var cmd_pair = [this.alias_cmd, this.alias_n_cmd];
 
-    this.cmd_is_dm = CreateByMask( this.alias_cmd, this.alias_n_cmd, '000', this.name + ".cmd/dd" );
-    this.cmd_is_to_mem = CreateByMask( this.alias_cmd, this.alias_n_cmd, '0001', this.name + ".dd/mem" );
+    //system
+    this.cmd_is_dm = CreateByMask( ...cmd_pair, '100', this.name + ".cmd/dd" );
+    this.cmd_is_flow_control = CreateByMask( ...cmd_pair, '001', this.name + ".cmd/fc" );
+    this.cmd_is_caculation = CreateByMask( ...cmd_pair, 'x1x', this.name + ".cmd/cc" );
+
+    // destination
+    this.dm_load_to_ax = CreateByMask( ...cmd_pair, '10000', this.name + ".dd/to_ax" );
+    this.dm_load_to_bx = CreateByMask( ...cmd_pair, '10001', this.name + ".dd/to_bx" );
+    this.dm_load_from_ax = CreateByMask( ...cmd_pair, '10010', this.name + ".dd/from_ax" );
+    this.dm_load_from_bx = CreateByMask( ...cmd_pair, '10011', this.name + ".dd/from_bx" );
+
+    this.dm_to_mem = CreateByMask( ...cmd_pair, '1001', this.name + ".dd/mem" );
+
+    // commands
 
   }
 
@@ -145,23 +154,23 @@ class Cpu16Bit1P {
     this.ms_memory_addr.append( this.alias_is_decode, this.ms_memory_addr_when_decode.get_output_endpoints() );
 
     this.opr_add_1 = new Adder( this.opr, [SIG_ONE], this.name + ".opr+1" ).get_output_endpoints();
-    var dm_when_exec = CreateAnd( this.name + ".dm2mem/exec", this.alias_is_exec, this.cmd_is_to_mem);
-    var dm_when_store = CreateAnd( this.name = ".dm2mem/store", this.alias_is_store, this.cmd_is_to_mem );
+    var dm_when_exec = CreateAnd( this.name + ".dm2mem/exec", this.alias_is_exec, this.dm_to_mem);
+    var dm_when_store = CreateAnd( this.name + ".dm2mem/store", this.alias_is_store, this.dm_to_mem );
 
-    this.ms_memory_en.append( this.alias_is_init, [this.falling_edge] );
+    this.ms_memory_en.append( CreateAnd( this.name + ".init_mem", this.reset, this.alias_is_init), [this.falling_edge] );
 
     //dm
     //write first byte
-    var dm_a0 = CreateAnd( this.name + ".dm2mem/from_ax0", this.alias_is_exec, this.load_from_ax );
-    var dm_b0 = CreateAnd( this.name + ".dm2mem/from_bx0", this.alias_is_exec, this.load_from_bx );
+    var dm_a0 = CreateAnd( this.name + ".dm2mem/from_ax0", this.alias_is_exec, this.dm_load_from_ax );
+    var dm_b0 = CreateAnd( this.name + ".dm2mem/from_bx0", this.alias_is_exec, this.dm_load_from_bx );
     this.ms_memory_addr.append( dm_when_exec, this.opr );
     this.ms_memory_input.append( dm_a0, this.ax.slice(0, 8) );
     this.ms_memory_input.append( dm_b0, this.bx.slice(0, 8) );
     this.ms_memory_en.append( dm_when_exec, [this.falling_edge] );
 
     //write the second byte
-    var dm_a1 = CreateAnd( this.name + ".dm2mem/from_ax1", this.alias_is_store, this.load_from_ax );
-    var dm_b1 = CreateAnd( this.name + ".dm2mem/from_bx1", this.alias_is_store, this.load_from_bx );
+    var dm_a1 = CreateAnd( this.name + ".dm2mem/from_ax1", this.alias_is_store, this.dm_load_from_ax );
+    var dm_b1 = CreateAnd( this.name + ".dm2mem/from_bx1", this.alias_is_store, this.dm_load_from_bx );
     this.ms_memory_addr.append( dm_when_store, this.opr_add_1 );
     this.ms_memory_input.append( dm_a1, this.ax.slice(8,16) );
     this.ms_memory_input.append( dm_b1, this.bx.slice(8,16) );
@@ -229,14 +238,14 @@ class Cpu16Bit1P {
     this.ms_ax_en.append( this.alias_is_init, [this.falling_edge] );
 
     this.ms_ax.append( this.alias_is_store, this.ires );
-    this.ms_ax_en.append( CreateAnd( this.name + '.to_ax', this.alias_is_store, this.load_to_ax ), [this.falling_edge] );
+    this.ms_ax_en.append( CreateAnd( this.name + '.to_ax', this.alias_is_store, this.dm_load_to_ax ), [this.falling_edge] );
 
     //BX
     this.ms_bx.append( this.alias_is_init, [] );
     this.ms_bx_en.append( this.alias_is_init, [this.falling_edge] );
 
     this.ms_bx.append( this.alias_is_store, this.ires );
-    this.ms_bx_en.append( CreateAnd( this.name + '.to_bx', this.alias_is_store, this.load_to_bx ), [this.falling_edge] );
+    this.ms_bx_en.append( CreateAnd( this.name + '.to_bx', this.alias_is_store, this.dm_load_to_bx ), [this.falling_edge] );
 
   }
 
@@ -373,7 +382,7 @@ class Cpu16Bit1P {
     }
     this.STORE = "STORE";
     this.END = "END";
-    this.is_stop = CreateByMask( this.alias_cmd, this.alias_n_cmd, '11111111111', this.name + ".stop" );
+    this.is_stop = CreateByMask( this.alias_cmd, this.alias_n_cmd, '10111111111', this.name + ".stop" );
     const events = [ this.start, this.is_stop, ...cycle_endpoints_lsb2msb ];
     const edges = [ 
       [this.INIT, '10', this.FETCH],

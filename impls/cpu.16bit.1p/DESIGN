@@ -49,17 +49,19 @@
     11: opr <- mem[bx]
 
   Command:
-    000 xxxx xxxx: data manipulating
-    000 ddxx xxxx: moving data
+    100 ddxx xxxx: moving data
       dd: data direction
-        00: opr -> ax
-        01: opr -> bx
+        00: res -> ax
+        01: res -> bx
         10: ax -> mem[opr]
         11: bx -> mem[opr]
 
       ignore the others
         
     001 xxxx xxxx: flow control
+    x1x ddxx xxxx: caculation
+
+    101 xxxx xxxx: END
 
   
   
