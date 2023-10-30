@@ -49,10 +49,20 @@ function CreateAnd( name, ...gates ) {
   return res;
 }
 
+function CreateOr( name, ...gates ) {
+  var res = new OrGate( name );
+  for( var i = 0 ; i < gates.length ; i++ ) {
+    res.inputs.push( gates[i] );
+  }
+  return res;
+}
+
+
+
 //returns [MultiSource Of Reg Value, Reg Endpoints, ~Reg Endpoints, Reg Enable as a MultiSource]
-function CreateNetCrossing( width, name )
+function CreateNetCrossing( width, name, use_priority_for_ms_data )
 {
-  var ms_reg = new MultiSource( [], [], width, name + "_ms" );
+  var ms_reg = new MultiSource( [], [], width, name + "_ms", use_priority_for_ms_data );
   var ms_en = new MultiSource( [], [], 1, name + "_en" );
   var reg = NewComponentArray( width, Bit, 2, 
                                ms_en.get_output_endpoints()[0], 

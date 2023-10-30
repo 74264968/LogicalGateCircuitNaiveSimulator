@@ -40,15 +40,15 @@
        ^^^^^^^^^^^^
          command
 
-  ccc: cycles
+  ccc: cycles (bit 0~2)
 
-  aa: Addressing Mode:
+  aa: Addressing Mode: (3~4)
     00: opr <- imm
     01: opr <- mem[imm]
     10: opr <- mem[ax]
     11: opr <- mem[bx]
 
-  Command:
+  Command: (5~17)
     100 ddxx xxxx: moving data
       dd: data direction
         00: res -> ax

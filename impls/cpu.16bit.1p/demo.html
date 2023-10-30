@@ -31,13 +31,9 @@
       this.cpu = new Cpu16Bit1P( this.clock, this.reset, this.start, "cpu" );
       var initial_bytes = [
       //cccaasss   ddxxxxxx ...
-      "00000100", "00000000", 254, 255, // cycle 1, opr <- imm, moving data, default, res->ax, iopr 65534
-"00000100", "01000000", 253, 255, // cycle 1, opr <- imm, moving data, default, res->bx, iopr 65533
-"00000100", "10000000", 0, 4, // cycle 1, opr <- imm, moving data, default, ax ->mem[opr], iopr 1024
-"00000100", "11000000", 0, 8, // cycle 1, opr <- imm, moving data, default, bx ->mem[opr], iopr 2048
-"00000110", "00000001", 0, 4, // cycle 1, opr <- imm, caculation(110), ADD (res = AX + OPR), res->ax, iopr 1024
-"00000110", "01000001", 0, 4, // cycle 1, opr <- imm, caculation(110), ADD (res = AX + OPR), res->bx, iopr 1024
-"00000011", "01000000", 0, 4, // cycle 1, opr <- imm, end, end, res->bx, iopr 1024
+      "00000100", "00000000", 100, 0, // cycle 1, opr <- 100, moving data, default, res->ax, ax = 100
+"00000110", "00000010", 1, 0, // cycle 1, opr <- 1, caculation(110), SUB (res = AX - OPR), res->ax, ax=ax-1
+"00000001", "00000011", 4, 0, // cycle 1, opr <- 4, flow control, JNZ, res->ax,
       ].map( (x) => {
         if( typeof(x) === 'string' ) {
           return parseInt(x.split('').reverse().join(''),2)
@@ -106,6 +102,8 @@
         [this.cpu.alias_inst_opr, false, "inst_opr", true],
         [this.cpu.opr, false, "opr", true],
         [this.cpu.ires, false, "ires", true],
+        [this.cpu.cmd_is_jnz, false, 'jnz', true],
+        [this.cpu.flag_ax_non_zero, false, 'nonzero', true],
       ]
     }
 

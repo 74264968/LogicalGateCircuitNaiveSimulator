@@ -146,7 +146,12 @@ class Cpu16Bit1P {
     this.cmd_is_add = CreateByMask( ...cmd_pair, '110 0x 000001', this.name + ".cmd/add" );
     this.cmd_is_sub = CreateByMask( ...cmd_pair, '110 0x 000010', this.name + ".cmd/sub" );
 
-    this.cmd_is_jump = CreateByMask( ...cmd_pair, '001', this.name + "./cmd/jump" );
+    // flow control
+    this.flag_ax_is_zero = CreateAnd( this.name + './flag/zero', ...this.n_ax );
+    this.flag_ax_non_zero = CreateOr( this.name + './flag/nonzero', ...this.ax );
+    this.cmd_is_jump = CreateByMask( ...cmd_pair, '001 xx 000001', this.name + "./cmd/jump" );
+    this.cmd_is_jz = CreateByMask( ...cmd_pair, '001 xx 000010', this.name + "./cmd/jz" );
+    this.cmd_is_jnz = CreateByMask( ...cmd_pair, '001 xx 000011', this.name + "./cmd/jnz" );
 
   }
 
@@ -190,12 +195,15 @@ class Cpu16Bit1P {
     this.ms_ip.append( this.alias_is_init, [] );
     this.ms_ip_en.append( this.alias_is_init, [this.falling_edge] );
 
-    this.ms_new_ip = new MultiSource( [], [], this.ADDR_WIDTH, this.name + ".new_ip" );
+    this.ms_new_ip = new MultiSource( [], [], this.ADDR_WIDTH, this.name + ".new_ip", true );
     {
       this.simple_next_ip = new Adder( this.ip, [SIG_ZERO, SIG_ZERO, SIG_ONE], this.name + ".ip+4" ).get_output_endpoints();
 
+      // with priority from high to low
+      this.ms_new_ip.append( this.cmd_is_jump, this.opr );
+      this.ms_new_ip.append( CreateAnd( this.name + ".jz", this.cmd_is_jz, this.flag_ax_is_zero ) , this.opr );
+      this.ms_new_ip.append( CreateAnd( this.name + ".jnz", this.cmd_is_jnz, this.flag_ax_non_zero ), this.opr );
       this.ms_new_ip.append( this.alias_go_ahead, this.simple_next_ip );
-      //TODO
     }
 
     this.ms_ip.append( this.alias_is_store, this.ms_new_ip.get_output_endpoints() );

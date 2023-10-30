@@ -14,6 +14,7 @@
       var am = document.getElementById('am');
       var system = document.getElementById('system');
       var destination = document.getElementById('destination');
+      var user_comment = document.getElementById('comment');
       system.onchange = function() {
         cmd.childNodes.forEach( (x) => {
           if( x.tagName === 'OPTION' ) {
@@ -104,7 +105,10 @@
             comment+= system.selectedOptions[0].text + ", ";
             comment+= cmd.selectedOptions[0].text + ", ";
             comment+= destination.selectedOptions[0].text + ", ";
-            comment+= 'iopr ' + operand.value;
+            comment+= user_comment.value;
+
+
+            comment = comment.replaceAll( '${IMM}' , '' + operand.value );
 
         insert( body + " // " + comment )
       }
@@ -125,8 +129,8 @@
   </select>
 
   <select id="am">
-    <option value="00">opr &lt;- imm</option>
-    <option value="01">opr &lt;- mem[imm]</option>
+    <option value="00">opr &lt;- ${IMM}</option>
+    <option value="01">opr &lt;- mem[${IMM}]</option>
     <option value="10">opr &lt;- mem[ax]</option>
     <option value="11">opr &lt;- mem[bx]</option>
   </select>
@@ -142,8 +146,8 @@
   <select id="destination">
     <option value="00">res-&gt;ax</option>
     <option value="01">res-&gt;bx</option>
-    <option value="10">ax -&gt;mem[opr]</option>
-    <option value="11">bx -&gt;mem[opr]</option>
+    <option value="10">ax -&gt;mem[${OPR}]</option>
+    <option value="11">bx -&gt;mem[${OPR}]</option>
   </select>
 
   <select id="cmd">
@@ -151,11 +155,13 @@
     <option value="000001" system-prefix="110">ADD (res = AX + OPR)</option>
     <option value="000010" system-prefix="110">SUB (res = AX - OPR)</option>
     <option value="000001" system-prefix="001">JMP</option>
-    <option value="000011" system-prefix="001">JZ</option>
+    <option value="000010" system-prefix="001">JZ</option>
+    <option value="000011" system-prefix="001">JNZ</option>
     <option value="000000" system-prefix="011">end</option>
   </select>
 
   <input id="operand" type="number" value="0"/>
+  <input id="comment" type="text" value="" placeholder="comments here"/>
 
   <button id="add">insert</button>
 </div>
