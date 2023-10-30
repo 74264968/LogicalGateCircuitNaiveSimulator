@@ -177,12 +177,15 @@ class Bus {
   }
 }
 
+// actually, a selector
 class MultiSource {
-  constructor( valids, inputs, data_width, prefix ) {
+  constructor( valids, inputs, data_width, prefix, with_priority ) {
     this.network = [];
     this.data_width = data_width;
     this.outputs = [];
     this.prefix = prefix;
+    this.with_priority = with_priority;
+    this.n_valids = [];
     for( var i = 0 ; i < data_width ; i++ ) {
       this.outputs.push( new OrGate( prefix + "_o" + i ) );
       this.network.push( this.outputs[i] );
@@ -195,10 +198,24 @@ class MultiSource {
 
   append( valid, input ) {
     var idx = this.outputs[0].length;
+    var what = valid;
+    if( this.with_priority ) {
+      var new_valid = new AndGate( this.prefix + "_new_v" + (this.n_valids.length + 1) );
+      for( var i = 0 ; i < this.n_valids.length ; i++ ) {
+        new_valid.inputs.push( this.n_valids[i] );
+      }
+      new_valid.inputs.push( valid );
+      what = new_valid;
+
+      var n_valid = new NotGate( this.prefix + "_not_v" + this.n_valids.length );
+      n_valid.inputs.push( valid );
+      this.n_valids.push( n_valid );
+    }
+
     for( var i = 0 ; i < this.data_width ; i++ ) {
       var v = new AndGate( this.prefix + "_o" + i + "." + idx );
       {
-        v.inputs.push( valid );
+        v.inputs.push( what );
         v.inputs.push( input[i] || SIG_ZERO );
       }
       this.outputs[i].inputs.push(v);
